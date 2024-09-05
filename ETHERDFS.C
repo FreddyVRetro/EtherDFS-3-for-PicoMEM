@@ -34,6 +34,8 @@
 #include "chint.h"   /* _mvchain_intr() */
 #include "version.h" /* program & protocol version */
 
+#define PICOMEM 1
+
 /* set DEBUGLEVEL to 0, 1 or 2 to turn on debug mode with desired verbosity */
 #define DEBUGLEVEL 0
 
@@ -282,7 +284,6 @@ regs.h.al
 regs.h.ah
 */
 
-
 /* sends query out, as found in glob_pktdrv_sndbuff, and awaits for an answer.
  * this function returns the length of replyptr, or 0xFFFF on error. */
 static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned char **replyptr, unsigned short **replyax, unsigned int updatermac) {
@@ -321,6 +322,10 @@ static unsigned short sendquery(unsigned char query, unsigned char drive, unsign
   /* send the query frame and wait for an answer for about 100ms. then, resend
    * the query again and again, up to 5 times. the RTC clock at 0x46C is used
    * as a timing reference. */
+
+#if PICOMEM // Modified Send packet for PicoMEM
+
+#else
   glob_pktdrv_recvbufflen = 0; /* mark the receiving buffer empty */
   for (count = 5; count != 0; count--) { /* faster than count=0; count<5; count++ */
     /* send the query frame out */
@@ -388,12 +393,16 @@ static unsigned short sendquery(unsigned char query, unsigned char drive, unsign
           goto ignoreframe;
         }
       }
+#endif // Modified Send Query for PicoMEM
 
       /* return buffer (without headers and seq) */
       *replyptr = glob_pktdrv_recvbuff + 60;
       *replyax = (unsigned short *)(glob_pktdrv_recvbuff + 58);
+#if PICOMEM // Modified Send packet for PicoMEM
+#else      
       /* update glob_rmac if needed, then return */
       if (updatermac != 0) copybytes(GLOB_RMAC, glob_pktdrv_recvbuff + 6, 6);
+#endif      
       return(glob_pktdrv_recvbufflen - 60);
       ignoreframe: /* ignore this frame and wait for the next one */
       glob_pktdrv_recvbufflen = 0; /* mark the buffer empty */
@@ -1881,6 +1890,11 @@ int main(int argc, char **argv) {
   /* remember the SDA address (will be useful later) */
   glob_sdaptr = getsda();
 
+ #if PICOMEM // No Packet driver, add PicoMEM detection code
+
+
+
+ #else // No PICOMEM
   /* init the packet driver interface */
   glob_data.pktint = 0;
   if (args.pktint == 0) { /* detect first packet driver within int 60h..80h */
@@ -1897,7 +1911,12 @@ int main(int argc, char **argv) {
     return(1);
   }
   pktdrv_getaddr(GLOB_LMAC);
+ #endif
 
+
+ #if PICOMEM // Should send a "Packet" to verify that the Disk driver is there
+
+ #else // No PICOMEM
   /* should I auto-discover the server? */
   if ((args.flags & ARGFL_AUTO) != 0) {
     unsigned short *ax;
@@ -1913,6 +1932,15 @@ int main(int argc, char **argv) {
       return(1);
     }
   }
+#endif  
+
+#if PICOMEM // Test : Quit
+
+  freeseg(newdataseg);
+  return(1);
+
+ #endif // PICOMEM
+
 
   /* set all drives as being 'network' drives (also add the PHYSICAL bit,
    * otherwise MS-DOS 6.0 will ignore the drive) */
@@ -1927,6 +1955,7 @@ int main(int argc, char **argv) {
     cds->current_path[3] = 0;
   }
 
+  // Display the Driver installed message and disk list
   if ((args.flags & ARGFL_QUIET) == 0) {
     char buff[20];
     #include "msg\\instlled.c"
