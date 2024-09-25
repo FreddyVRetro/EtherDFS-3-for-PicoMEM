@@ -36,6 +36,12 @@
 
 #define PICOMEM 1
 
+#if PICOMEM
+#include <stdio.h>
+/* Access to simple PicoMEM fonctions, to detect and send command */
+#include "pm_s_lib.h"
+#endif
+
 /* set DEBUGLEVEL to 0, 1 or 2 to turn on debug mode with desired verbosity */
 #define DEBUGLEVEL 0
 
@@ -288,9 +294,11 @@ regs.h.ah
  * this function returns the length of replyptr, or 0xFFFF on error. */
 static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned char **replyptr, unsigned short **replyax, unsigned int updatermac) {
   static unsigned char seq;
+#if PICOMEM == 0 // Not used variable
   unsigned short count;
   unsigned char t;
   unsigned char volatile far *rtc = (unsigned char far *)0x46C; /* this points to a char, while the rtc timer is a word - but I care only about the lowest 8 bits. Be warned that this location won't increment while interrupts are disabled! */
+#endif
 
   /* resolve remote drive - no need to validate it, it has been validated
    * already by inthandler() */
@@ -399,15 +407,21 @@ static unsigned short sendquery(unsigned char query, unsigned char drive, unsign
       *replyptr = glob_pktdrv_recvbuff + 60;
       *replyax = (unsigned short *)(glob_pktdrv_recvbuff + 58);
 #if PICOMEM // Modified Send packet for PicoMEM
+
+// Add code to receive answer
+
 #else      
       /* update glob_rmac if needed, then return */
       if (updatermac != 0) copybytes(GLOB_RMAC, glob_pktdrv_recvbuff + 6, 6);
 #endif      
       return(glob_pktdrv_recvbufflen - 60);
+#if PICOMEM // Modified No received packet code
+#else 
       ignoreframe: /* ignore this frame and wait for the next one */
       glob_pktdrv_recvbufflen = 0; /* mark the buffer empty */
-    }
+    }  
   }
+#endif
   return(0xFFFFu); /* return error */
 }
 
@@ -1166,7 +1180,7 @@ static void pktdrv_getaddr(unsigned char *dst) {
   }
 }
 
-
+#if PICOMEM == 0 // Not used fonction
 static int pktdrv_init(unsigned short pktintparam, int nocksum) {
   unsigned short far *intvect = (unsigned short far *)MK_FP(0, pktintparam << 2);
   unsigned short pktdrvfuncoffs = *intvect;
@@ -1220,8 +1234,9 @@ static int pktdrv_init(unsigned short pktintparam, int nocksum) {
 
   return(pktdrv_accesstype());
 }
+#endif //(PICOMEM==0)
 
-
+#if PICOMEM == 0 // Not used fonction
 static void pktdrv_free(unsigned long pktcall) {
   _asm {
     mov ah, 3
@@ -1235,6 +1250,7 @@ static void pktdrv_free(unsigned long pktcall) {
   /* if (regs.x.cflag != 0) return(-1);
   return(0);*/
 }
+#endif //(PICOMEM==0)
 
 static struct sdastruct far *getsda(void) {
   /* DOS 3.0+ - GET ADDRESS OF SDA (Swappable Data Area)
@@ -1628,6 +1644,7 @@ int main(int argc, char **argv) {
     return(1);
   }
 
+#if (PICOMEM==0)
   /* check DOS version - I require DOS 3.20 - 3.30 */
   _asm {
     mov ah, 30h       /* get DOS version */
@@ -1647,6 +1664,7 @@ int main(int argc, char **argv) {
     #include "msg\\unsupdos.c"
     return(1);
   }
+#endif
 
   /* look whether or not it's ok to install a network redirector at int 2F */
   _asm {
@@ -1892,6 +1910,17 @@ int main(int argc, char **argv) {
 
  #if PICOMEM // No Packet driver, add PicoMEM detection code
 
+  // check if the PicoMEM BIOS is present.
+  // It is mandatory as the data transfer use the RAM emulation
+  if (! pm_irq_detect())
+     {
+      printf("PicoMEM not detected\n");
+      return 1;
+     }
+     else
+     {
+      printf("PicoMEM Addr: %X Port: %X",BIOS_Segment,);
+     }
 
 
  #else // No PICOMEM
@@ -1915,6 +1944,8 @@ int main(int argc, char **argv) {
 
 
  #if PICOMEM // Should send a "Packet" to verify that the Disk driver is there
+ // Add etherDFS Command detection
+ printf("PicoMEM etherDFS command detection\n");
 
  #else // No PICOMEM
   /* should I auto-discover the server? */

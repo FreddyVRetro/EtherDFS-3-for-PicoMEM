@@ -16,7 +16,8 @@ chint.obj: chint086.asm
 etherdfs.exe: genmsg.exe etherdfs.c chint.obj dosstruc.h globals.h version.h
 	md msg
 	genmsg.exe
-	wcl -y -0 -s -d0 -lr -ms -we -wx -k1024 -fm=etherdfs.map -os chint.obj etherdfs.c -fe=etherdfs.exe
+#	wcl -y -0 -s -d0 -lr -ms -we -wx -k1024 -fm=etherdfs.map -os chint.obj etherdfs.c -fe=etherdfs.exe
+    wcl -y -0 -s -d0 -lr -ms -wx -k1024 -fm=etherdfs.map -os chint.obj etherdfs.c -fe=etherdfs.exe
 	upx -9 --8086 etherdfs.exe
 
 instchk.exe: genmsg.exe dosstruc.h globals.h version.h
