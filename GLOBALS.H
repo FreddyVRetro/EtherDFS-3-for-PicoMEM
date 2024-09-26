@@ -47,7 +47,9 @@ static struct tsrshareddata {
 } glob_data;
 
 /* global variables related to packet driver management and handling frames */
+#if PICOMEM == 0 // No need for Receive buffer
 static unsigned char glob_pktdrv_recvbuff[FRAMESIZE];
+#endif
 static signed short volatile glob_pktdrv_recvbufflen; /* length of the frame in buffer, 0 means "free", and neg value means "awaiting" */
 static unsigned char glob_pktdrv_sndbuff[FRAMESIZE]; /* this not only is my send-frame buffer, but I also use it to store permanently lmac, rmac, ethertype and PROTOVER at proper places */
 static unsigned long glob_pktdrv_pktcall;     /* vector address of the pktdrv interrupt */

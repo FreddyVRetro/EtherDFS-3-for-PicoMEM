@@ -124,6 +124,7 @@ static unsigned short bsdsum(unsigned char *dataptr, unsigned short l) {
  * IMPORTANT: this function must take care to modify ONLY the registers
  * ES and DI - packet drivers can be easily confused should anything else
  * be modified. */
+#if PICOMEM == 0 // Not used fonctions (Network)
 void __declspec(naked) far pktdrv_recv(void) {
   _asm {
     jmp skip
@@ -176,7 +177,7 @@ void __declspec(naked) far pktdrv_recv(void) {
     retf
   }
 }
-
+#endif // PICOMEM==0
 
 /* translates a drive letter (either upper- or lower-case) into a number (A=0,
  * B=1, C=2, etc) */
@@ -403,19 +404,23 @@ static unsigned short sendquery(unsigned char query, unsigned char drive, unsign
       }
 #endif // Modified Send Query for PicoMEM
 
-      /* return buffer (without headers and seq) */
-      *replyptr = glob_pktdrv_recvbuff + 60;
-      *replyax = (unsigned short *)(glob_pktdrv_recvbuff + 58);
 #if PICOMEM // Modified Send packet for PicoMEM
 
 // Add code to receive answer
-
+// *replyptr = 
+// *replyax = 
+// return("length" - 60);
 #else      
+      /* return buffer (without headers and seq) */
+      *replyptr = glob_pktdrv_recvbuff + 60;
+      *replyax = (unsigned short *)(glob_pktdrv_recvbuff + 58);
       /* update glob_rmac if needed, then return */
       if (updatermac != 0) copybytes(GLOB_RMAC, glob_pktdrv_recvbuff + 6, 6);
-#endif      
       return(glob_pktdrv_recvbufflen - 60);
+#endif      
+
 #if PICOMEM // Modified No received packet code
+
 #else 
       ignoreframe: /* ignore this frame and wait for the next one */
       glob_pktdrv_recvbufflen = 0; /* mark the buffer empty */
@@ -1131,6 +1136,8 @@ void __interrupt __far inthandler(union INTPACK r) {
 void begtextend(void) {
 }
 
+#if PICOMEM == 0 // Not used fonctions (Network)
+
 /* registers a packet driver handle to use on subsequent calls */
 static int pktdrv_accesstype(void) {
   unsigned char cflag = 0;
@@ -1180,7 +1187,7 @@ static void pktdrv_getaddr(unsigned char *dst) {
   }
 }
 
-#if PICOMEM == 0 // Not used fonction
+
 static int pktdrv_init(unsigned short pktintparam, int nocksum) {
   unsigned short far *intvect = (unsigned short far *)MK_FP(0, pktintparam << 2);
   unsigned short pktdrvfuncoffs = *intvect;
