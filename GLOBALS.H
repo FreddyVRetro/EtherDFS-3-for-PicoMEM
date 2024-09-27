@@ -49,10 +49,12 @@ static struct tsrshareddata {
 /* global variables related to packet driver management and handling frames */
 #if PICOMEM == 0 // No need for Receive buffer
 static unsigned char glob_pktdrv_recvbuff[FRAMESIZE];
-#endif
 static signed short volatile glob_pktdrv_recvbufflen; /* length of the frame in buffer, 0 means "free", and neg value means "awaiting" */
+#endif
 static unsigned char glob_pktdrv_sndbuff[FRAMESIZE]; /* this not only is my send-frame buffer, but I also use it to store permanently lmac, rmac, ethertype and PROTOVER at proper places */
+#if PICOMEM == 0 // No need for packet receive IRQ
 static unsigned long glob_pktdrv_pktcall;     /* vector address of the pktdrv interrupt */
+#endif
 
 /* a few definitions for data that points to my sending buffer */
 #define GLOB_LMAC (glob_pktdrv_sndbuff + 6) /* local MAC address */
@@ -75,5 +77,9 @@ static unsigned char glob_multiplexid;
 /* an INTPACK structure used to store registers as set when INT2F is called */
 static union INTPACK glob_intregs;
 
+#if PICOMEM  // Variables for pm_s_lib.h, must be placed in Data segment
+static unsigned short PM_Base=0;
+static unsigned short BIOS_Segment=0;
+#endif
 
 #endif

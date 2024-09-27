@@ -1,2 +1,3 @@
-ETHERDFS.C(1133): Warning! W202: Symbol 'pktdrv_accesstype' has been defined, but not referenced
+c:\Users\fv754687\OneDrive - Haleon\Desktop\RP\Programmation\PicoMEM\src\drivers\PMTOOLS\a.batETHERDFS.C(1133): Warning! W202: Symbol 'pktdrv_accesstype' has been defined, but not referenced
 ETHERDFS.C(1165): Warning! W202: Symbol 'pktdrv_getaddr' has been defined, but not referenced
+wdis -l PMINIT.OBJ

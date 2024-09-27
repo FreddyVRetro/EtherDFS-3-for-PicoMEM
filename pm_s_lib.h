@@ -13,8 +13,10 @@
 
 #define DEFAULT_BASE 0x2A0
 
-uint16_t PM_Base=0;
-uint16_t BIOS_Segment=0;
+/* For ETHDFS : Need to declare in the data segment
+unsigned short PM_Base=0;
+unsigned short BIOS_Segment=0;
+*/
 
 
 bool pm_wait_cmd_end()
@@ -44,7 +46,7 @@ bool pm_wait_cmd_end()
 }
 
 // Send a command via I/O with argument and return a word
-uint16_t pm_io_cmd(uint8_t cmd,uint16_t arg)
+unsigned short pm_io_cmd(unsigned char cmd,unsigned short arg)
 {
 #if TEST
  return 0;

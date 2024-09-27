@@ -39,7 +39,6 @@
 #if PICOMEM
 #include <stdio.h>
 /* Access to simple PicoMEM fonctions, to detect and send command */
-#include "pm_s_lib.h"
 #endif
 
 /* set DEBUGLEVEL to 0, 1 or 2 to turn on debug mode with desired verbosity */
@@ -59,6 +58,12 @@
 
 /* all the resident code goes to segment 'BEGTEXT' */
 #pragma code_seg(BEGTEXT, CODE)
+
+#if PICOMEM
+/* Access to simple PicoMEM fonctions, to detect and send command */
+#include <stdbool.h>  /* Needed for compiler in C99 Mode*/
+#include "pm_s_lib.h"
+#endif
 
 
 /* copies l bytes from *s to *d */
@@ -1511,7 +1516,7 @@ static unsigned short allocseg(unsigned short sz) {
   /* ask DOS for memory */
   _asm {
     push cx /* save cx */
-    /* set strategy to 'last fit' */
+    /* set strategy to 'last fit' (DOS 3.0+ )*/
     mov ah, 58h
     xor al, al  /* al = 0 means 'get strategy' */
     int 21h     /* now current strategy is in ax */
@@ -1571,6 +1576,8 @@ static int updatetsrds(void) {
   /* check for the routine's signature first ("MVet") */
   if ((ptr[0] != 'M') || (ptr[1] != 'V') || (ptr[2] != 'e') || (ptr[3] != 't')) return(-1);
   sptr[3] = newds;
+
+#if PICOMEM == 0 // No more need to patch the packet receive interrupt
   /* now patch the pktdrv_recv() routine */
   ptr = (unsigned char far *)pktdrv_recv + 3;
   sptr = (unsigned short far *)ptr;
@@ -1587,6 +1594,8 @@ static int updatetsrds(void) {
     unsigned short far *VGA = (unsigned short far *)(0xB8000000l);
     for (x = 0; x < 128; x++) VGA[80*20 + ((x >> 6) * 80) + (x & 63)] = 0x1f00 | ptr[x];
   }*/
+#endif  
+
   return(0);
 }
 
@@ -1926,7 +1935,7 @@ int main(int argc, char **argv) {
      }
      else
      {
-      printf("PicoMEM Addr: %X Port: %X",BIOS_Segment,);
+      printf("PicoMEM Addr: %X Port: %X",BIOS_Segment,PM_Base);
      }
 
 
@@ -1974,7 +1983,7 @@ int main(int argc, char **argv) {
 
 #if PICOMEM // Test : Quit
 
-  freeseg(newdataseg);
+  freeseg(newdataseg);  // Free the new data segment allocation
   return(1);
 
  #endif // PICOMEM
