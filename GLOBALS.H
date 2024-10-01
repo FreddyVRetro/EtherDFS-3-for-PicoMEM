@@ -78,8 +78,11 @@ static unsigned char glob_multiplexid;
 static union INTPACK glob_intregs;
 
 #if PICOMEM  // Variables for pm_s_lib.h, must be placed in Data segment
-static unsigned short PM_Base=0;
-static unsigned short BIOS_Segment=0;
+static unsigned short PM_Base=0;         // PicoMEM I/O Base address
+static unsigned char  PM_PicoID=0;       // Pi Pico board model/ID 
+static unsigned char  PM_BoardID=0;      // PicoMEM Board model/ID
+static unsigned short BIOS_Segment=0;    // PicoMEM BIOS segment (Can be 0 if not detected)
+static unsigned short PM_PCCR_Param=0;   // Commands parameter RAM address (To send/Receive small data to/from command)
 #endif
 
 #endif
