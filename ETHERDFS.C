@@ -35,6 +35,7 @@
 #include "version.h" /* program & protocol version */
 
 #define PICOMEM 1
+#define DOSBOX 1
 
 #if PICOMEM
 #include <stdio.h>
@@ -100,6 +101,7 @@ static int len_if_no_wildcards(char far *s) {
   }
 }
 
+//#if PICOMEM == 0 // Not used fonctions (Network)
 /* computes a BSD checksum of l bytes at dataptr location */
 static unsigned short bsdsum(unsigned char *dataptr, unsigned short l) {
   unsigned short cksum = 0;
@@ -119,6 +121,7 @@ static unsigned short bsdsum(unsigned char *dataptr, unsigned short l) {
   }
   return(cksum);
 }
+//#endif
 
 /* this function is called two times by the packet driver. One time for
  * telling that a packet is incoming, and how big it is, so the application
@@ -1373,6 +1376,7 @@ static int hexpair2int(char *hx) {
   return(i);
 }
 
+#if PICOMEM == 0 // Not used fonctions (Network)
 /* translates an ASCII MAC address into a 6-bytes binary string */
 static int string2mac(unsigned char *d, char *mac) {
   int i, v;
@@ -1390,6 +1394,7 @@ static int string2mac(unsigned char *d, char *mac) {
   }
   return(0);
 }
+#endif
 
 
 #define ARGFL_QUIET 1
@@ -1465,6 +1470,7 @@ static int parseargv(struct argstruct *args) {
       }
       continue;
     }
+#if PICOMEM == 0 // Not used fonctions (Network)    
     /* not a drive mapping nor an option -> so it's a MAC addr perhaps? */
     if (gotmac != 0) return(-1);  /* fail if got a MAC already */
     /* read the srv mac address, unless it's "::" (auto) */
@@ -1473,6 +1479,7 @@ static int parseargv(struct argstruct *args) {
     } else {
       if (string2mac(GLOB_RMAC, args->argv[i]) != 0) return(-1);
     }
+#endif
     gotmac = 1;
   }
 
@@ -1660,7 +1667,7 @@ int main(int argc, char **argv) {
     return(1);
   }
 
-#if (PICOMEM==0)
+#if (DOSBOX==0)
   /* check DOS version - I require DOS 3.20 - 3.30 */
   _asm {
     mov ah, 30h       /* get DOS version */
@@ -1680,7 +1687,6 @@ int main(int argc, char **argv) {
     #include "msg\\unsupdos.c"
     return(1);
   }
-#endif
 
   /* look whether or not it's ok to install a network redirector at int 2F */
   _asm {
@@ -1696,6 +1702,7 @@ int main(int argc, char **argv) {
     #include "msg\\noredir.c"
     return(1);
   }
+#endif
 
   /* is it all about unloading myself? */
   if ((args.flags & ARGFL_UNLOAD) != 0) {
@@ -1861,6 +1868,7 @@ int main(int argc, char **argv) {
     return(1);
   }
 
+#if (DOSBOX==0)
   /* if any of the to-be-mapped drives is already active, fail */
   for (i = 0; i < 26; i++) {
     if (glob_data.ldrv[i] == 0xff) continue;
@@ -1874,6 +1882,7 @@ int main(int argc, char **argv) {
       return(1);
     }
   }
+#endif
 
   /* allocate a new segment for all my internal needs, and use it right away
    * as DS */
@@ -1935,7 +1944,7 @@ int main(int argc, char **argv) {
      }
      else
      {
-      printf("PicoMEM Addr: %X Port: %X",BIOS_Segment,PM_Base);
+      printf("PicoMEM Addr: %X Port: %X\n",BIOS_Segment,PM_Base);
      }
 
 
@@ -2006,14 +2015,18 @@ int main(int argc, char **argv) {
   if ((args.flags & ARGFL_QUIET) == 0) {
     char buff[20];
     #include "msg\\instlled.c"
+#if PICOMEM == 0   // Don't display MAC Address
     for (i = 0; i < 6; i++) {
       byte2hex(buff + i + i + i, GLOB_LMAC[i]);
     }
+#endif    
     for (i = 2; i < 16; i += 3) buff[i] = ':';
     buff[17] = '$';
     outmsg(buff);
     #include "msg\\pktdrvat.c"
+#if PICOMEM == 0   // Don't display IRQ
     byte2hex(buff, glob_data.pktint);
+#endif      
     buff[2] = ')';
     buff[3] = '\r';
     buff[4] = '\n';
@@ -2039,9 +2052,11 @@ int main(int argc, char **argv) {
       buff[14] = ' ';
       buff[15] = '$';
       outmsg(buff);
+#if PICOMEM == 0   // Don't display MAC Address      
       for (z = 0; z < 6; z++) {
         byte2hex(buff + z + z + z, GLOB_RMAC[z]);
       }
+#endif        
       for (z = 2; z < 16; z += 3) buff[z] = ':';
       buff[17] = '\r';
       buff[18] = '\n';

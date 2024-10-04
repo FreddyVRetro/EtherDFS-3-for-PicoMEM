@@ -2,6 +2,15 @@
     "files.associations": {
         "DPBTEST.C": "cpp",
         "ETHERDFS.C": "cpp",
-        "GENMSG.C": "cpp"
+        "GENMSG.C": "cpp",
+        "ALRLOAD.C": "cpp",
+        "HELP.C": "cpp",
+        "INSTLLED.C": "cpp",
+        "MAPFAIL.C": "cpp",
+        "MEMFAIL.C": "cpp",
+        "NOSRVFND.C": "cpp",
+        "NOTLOAD.C": "cpp",
+        "NOTLOAD1.C": "cpp",
+        "OTHERTSR.C": "cpp"
     }
 }

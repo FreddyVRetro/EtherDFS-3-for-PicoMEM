@@ -82,7 +82,7 @@ unsigned short pm_io_cmd(unsigned char cmd,unsigned short arg)
 ;			  * Bit 3 : Wifi Enabled
 ;         DX : AA55h (Means Ok)
 */
-extern bool pm_irq_detect()
+bool pm_irq_detect()
 {
 #if TEST    // Return fake PicoMEM Status
  BIOS_Segment=0xD000;
@@ -125,38 +125,6 @@ mov PM_PCCR_Param,cx
 @no_bios_3:           // All the linked variables remains at 0
 mov al,1              // Return true
 @@no_bios:
-mov al,0              // Return false
-@@end:
-mov r,al
-};
-return r;
-#endif
-}
-
-
-extern bool pm_get_id()
-{
-#if TEST    // Return fake PicoMEM Status
- BIOS_Segment=0xD000;
- PM_Base=0x220;
- return true;
-#else
-bool r;
-_asm {
-mov ah,0x60
-mov al,0
-mov dx,0x1234
-int 0x13
-mov PM_Base,ax
-/*inc ax
-mov PM_DataL,ax
-inc ax
-mov PM_DataH,ax */
-mov BIOS_Segment,bx
-/* mov PM_DeviceMask,cx */
-mov al,1              // Return true
-cmp dx,0xAA55
-je @@end
 mov al,0              // Return false
 @@end:
 mov r,al

@@ -1,0 +1,95 @@
+
+                          EtherDFS, known "bugs"
+                             (or limitations)
+
+
+==============================================================================
+
+>> Displayed "total" and "available" disk space information is incorrect.
+
+You may notice that EtherDFS shows "total" and "available" disk space
+information that is not exactly the same as what the drive on your server
+shows. This is expected, and it is due to two causes:
+
+1. EtherDFS limits the maximum disk space to slightly under 2 GiB, otherwise
+   most versions of MS-DOS would be confused.
+
+2. Even below 2 GiB, the amount of disk space won't always be exactly
+   reported, because the method of disk space computation is likely to be
+   different between DOS and your remote host's system. EtherDFS translates
+   one into another, but there still will be minor differences where EtherDFS
+   will show a few kilobytes less than expected.
+
+In both cases, the limitation is purely cosmetic and doesn't have any impact
+on the amount of data that can effectively be read from or written to the
+remote drive.
+
+
+==============================================================================
+
+>> Copied files loose their timestamps.
+
+When you copy a file to an EtherDFS drive, this file will loose its original
+timestamp and appear as being created "now". This is not really an EtherDFS
+bug, but rather a limitation of MS-DOS. I might work around this in some
+future versions.
+
+
+==============================================================================
+
+>> Missing LFN support.
+
+EtherDFS does not support LFNs, hence it will always process filenames in a
+way that conforms to the 8+3 scheme.
+
+One reason for this is that I simply do not like LFNs, which I consider to be
+an ugly hack. The other reason is that this is a design limitation of the
+"redirector" API exposed by the DOS kernel. Since EtherDFS heavily relies on
+this API, it cannot support LFNs even if I'd be willing to add such support.
+
+
+==============================================================================
+
+>> The game "Heretic" doesn't start from an EtherDFS drive with RTSPKT.
+
+When the RTSPKT packet driver is used with a Realtek 8139 network card, the
+game "Heretic" is unable to start when launched from within an EtherDFS drive.
+Not sure whether this is due to a bug in EtherDFS, the RTSPKT driver or both.
+Could also be some aggressive stack usage in either RTSPKT or Heretic.
+
+
+==============================================================================
+
+>> Operations to/from an EtherDFS drive take a very long time sometimes.
+
+EtherDFS is a transactional protocol, where every write/read operation awaits
+for a confirmation. In most practical cases within LAN networks this does not
+lead to noticeable slowdowns. However, edge cases may be impacted by network
+delays, esp. when a program performs lots of tiny operations instead of
+grouping them. Two examples below.
+
+1. The "usual" case:
+
+   RTD between the server and the client: 1ms
+   Avg size of read/write operations: 512 bytes
+
+   The effective transfer speed in such scenario would be about 500 KiB/s.
+
+2. The "edge" case:
+
+   RTD between the server and the client: 5ms
+   Avg size of read/write operations: 1 byte
+
+   The effective transfer speed in such scenario would be about 200 bytes/s.
+
+This could be optimized by implementing a smart internal cache or using a
+transfer window similar to what TCP does, thus making it possible to send a
+number of payload-carrying frames in bulk and waiting for confirmations to
+arrive later, but any of these solutions would significantly increase code
+complexity and memory footprint. Besides, software that performs such insane
+amounts of tiny read/write operations would behave poorly also on a floppies.
+
+
+==============================================================================
+
+                                   [ EOF ]
