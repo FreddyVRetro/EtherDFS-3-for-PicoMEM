@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.asm": "nasm",
         "DPBTEST.C": "cpp",
         "ETHERDFS.C": "cpp",
         "GENMSG.C": "cpp",
@@ -11,6 +12,9 @@
         "NOSRVFND.C": "cpp",
         "NOTLOAD.C": "cpp",
         "NOTLOAD1.C": "cpp",
-        "OTHERTSR.C": "cpp"
+        "OTHERTSR.C": "cpp",
+        "DRVACTIV.C": "cpp",
+        "UNSUPDOS.C": "cpp",
+        "INSTCHK.C": "cpp"
     }
 }

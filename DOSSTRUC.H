@@ -26,6 +26,7 @@
 #define CDSFLAG_JOI 0x2000u  /* JOINed drive */
 #define CDSFLAG_PHY 0x4000u  /* Physical drive */
 #define CDSFLAG_NET 0x8000u  /* Network drive */
+
 struct cdsstruct {
   unsigned char current_path[67]; /* current path */
   unsigned short flags; /* indicates whether the drive is physical, networked, substed or joined*/

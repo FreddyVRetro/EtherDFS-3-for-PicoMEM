@@ -35,7 +35,7 @@
 #include "version.h" /* program & protocol version */
 
 #define PICOMEM 1
-#define DOSBOX 1
+#define DOSBOX 0
 
 #if PICOMEM
 #include <stdio.h>
@@ -47,7 +47,7 @@
 
 /* define the maximum size of a frame, as sent or received by etherdfs.
  * example: value 1084 accomodates payloads up to 1024 bytes +all headers */
-#define FRAMESIZE 1090
+#define FRAMESIZE 1084
 
 #include "dosstruc.h" /* definitions of structures used by DOS */
 #include "globals.h"  /* global variables used by etherdfs */
@@ -123,70 +123,6 @@ static unsigned short bsdsum(unsigned char *dataptr, unsigned short l) {
 }
 //#endif
 
-/* this function is called two times by the packet driver. One time for
- * telling that a packet is incoming, and how big it is, so the application
- * can prepare a buffer for it and hand it back to the packet driver. the
- * second call is just to let know that the frame has been copied into the
- * buffer. This is a naked function - I don't need the compiler to get into
- * the way when dealing with packet driver callbacks.
- * IMPORTANT: this function must take care to modify ONLY the registers
- * ES and DI - packet drivers can be easily confused should anything else
- * be modified. */
-#if PICOMEM == 0 // Not used fonctions (Network)
-void __declspec(naked) far pktdrv_recv(void) {
-  _asm {
-    jmp skip
-    SIG db 'p','k','t','r'
-    skip:
-    /* save DS and flags to stack */
-    push ds  /* save old ds (I will change it) */
-    push bx  /* save bx (I use it as a temporary register) */
-    pushf    /* save flags */
-    /* set my custom DS (not 0, it has been patched at runtime already) */
-    mov bx, 0
-    mov ds, bx
-    /* handle the call */
-    cmp ax, 0
-    jne secondcall /* if ax != 0, then packet driver just filled my buffer */
-    /* first call: the packet driver needs a buffer of CX bytes */
-    cmp cx, FRAMESIZE /* is cx > FRAMESIZE ? (unsigned) */
-    ja nobufferavail  /* it is too small (that's what she said!) */
-    /* see if buffer not filled already... */
-    cmp glob_pktdrv_recvbufflen, 0 /* is bufflen > 0 ? (signed) */
-    jg nobufferavail  /* if signed > 0, then we are busy already */
-
-    /* buffer is available, set its seg:off in es:di */
-    push ds /* set es:di to recvbuff */
-    pop es
-    mov di, offset glob_pktdrv_recvbuff
-    /* set bufferlen to expected len and switch it to neg until data comes */
-    mov glob_pktdrv_recvbufflen, cx
-    neg glob_pktdrv_recvbufflen
-    /* restore flags, bx and ds, then return */
-    jmp restoreandret
-
-  nobufferavail: /* no buffer available, or it's too small -> fail */
-    xor bx,bx      /* set bx to zero... */
-    push bx        /* and push it to the stack... */
-    push bx        /* twice */
-    pop es         /* zero out es and di - this tells the */
-    pop di         /* packet driver 'sorry no can do'     */
-    /* restore flags, bx and ds, then return */
-    jmp restoreandret
-
-  secondcall: /* second call: I've just got data in buff */
-    /* I switch back bufflen to positive so the app can see that something is there now */
-    neg glob_pktdrv_recvbufflen
-    /* restore flags, bx and ds, then return */
-  restoreandret:
-    popf   /* restore flags */
-    pop bx /* restore bx */
-    pop ds /* restore ds */
-    retf
-  }
-}
-#endif // PICOMEM==0
-
 /* translates a drive letter (either upper- or lower-case) into a number (A=0,
  * B=1, C=2, etc) */
 #define DRIVETONUM(x) (((x) >= 'a') && ((x) <= 'z')?x-'a':x-'A')
@@ -237,24 +173,24 @@ static unsigned char supportedfunctions[0x2F] = {
   AL_DISKSPACE,   /* 0x0C */
   AL_UNKNOWN,     /* 0x0D */
   AL_SETATTR,     /* 0x0E */
-  AL_GETATTR,     /* 0x0F */
+  AL_GETATTR,     /* 0x0F GET REMOTE FILE'S ATTRIBUTES */
   AL_UNKNOWN,     /* 0x10 */
   AL_RENAME,      /* 0x11 */
   AL_UNKNOWN,     /* 0x12 */
-  AL_DELETE,      /* 0x13 */
+  AL_DELETE,      /* 0x13 DELETE REMOTE RLE */
   AL_UNKNOWN,     /* 0x14 */
   AL_UNKNOWN,     /* 0x15 */
-  AL_OPEN,        /* 0x16 */
-  AL_CREATE,      /* 0x17 */
+  AL_OPEN,        /* 0x16 OPEN EXISTING REMOTE FILE */
+  AL_CREATE,      /* 0x17 CREATE/TRUNCATE FILE      */
   AL_UNKNOWN,     /* 0x18 */
   AL_UNKNOWN,     /* 0x19 */
-  AL_UNKNOWN,     /* 0x1A */
-  AL_FINDFIRST,   /* 0x1B */
-  AL_FINDNEXT,    /* 0x1C */
-  AL_UNKNOWN,     /* 0x1D */
-  AL_UNKNOWN,     /* 0x1E */
-  AL_UNKNOWN,     /* 0x1F */
-  AL_UNKNOWN,     /* 0x20 */
+  AL_UNKNOWN,     /* 0x1A UNKNOWN                */
+  AL_FINDFIRST,   /* 0x1B FINDFIRST              */
+  AL_FINDNEXT,    /* 0x1C FINDNEXT               */
+  AL_UNKNOWN,     /* 0x1D CLOSE ALL REMOTE FILES FOR PROCESS */
+  AL_UNKNOWN,     /* 0x1E DO REDIRECTION         */
+  AL_UNKNOWN,     /* 0x1F PRINTER SETUP          */
+  AL_UNKNOWN,     /* 0x20 FLUSH ALL DISK BUFFERS */
   AL_SKFMEND,     /* 0x21 */
   AL_UNKNOWN,     /* 0x22 */
   AL_UNKNOWN,     /* 0x23 */
@@ -299,142 +235,40 @@ regs.h.al
 regs.h.ah
 */
 
-/* sends query out, as found in glob_pktdrv_sndbuff, and awaits for an answer.
+/* sends query out, as found in pm_dfs_buffer, and awaits for an answer.
  * this function returns the length of replyptr, or 0xFFFF on error. */
-static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned char **replyptr, unsigned short **replyax, unsigned int updatermac) {
-  static unsigned char seq;
-#if PICOMEM == 0 // Not used variable
-  unsigned short count;
-  unsigned char t;
-  unsigned char volatile far *rtc = (unsigned char far *)0x46C; /* this points to a char, while the rtc timer is a word - but I care only about the lowest 8 bits. Be warned that this location won't increment while interrupts are disabled! */
-#endif
+static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned short far **replyax) {
+  unsigned short length;
+  unsigned short i;
+  unsigned short a;
+  unsigned short b;
+
 
   /* resolve remote drive - no need to validate it, it has been validated
    * already by inthandler() */
   drive = glob_data.ldrv[drive];
 
-  /* bufflen provides payload's lenght, but I prefer knowing the frame's len */
   bufflen += 60;
-
   /* if query too long then quit */
-  if (bufflen > sizeof(glob_pktdrv_sndbuff)) return(0);
-  /* inc seq */
-  seq++;
-  /* I do not fill in ethernet headers (src mac, dst mac, ethertype), nor
-   * PROTOVER, since all these have been inited already at transient time */
-  /* padding (38 bytes) */
-  ((unsigned short *)glob_pktdrv_sndbuff)[26] = bufflen; /* total frame len */
-  glob_pktdrv_sndbuff[57] = seq;   /* seq number */
-  glob_pktdrv_sndbuff[58] = drive;
-  glob_pktdrv_sndbuff[59] = query; /* AL value (query) */
-  if (glob_pktdrv_sndbuff[56] & 128) { /* if CKSUM enabled, compute it */
-    /* fill in the BSD checksum at offset 54 */
-    ((unsigned short *)glob_pktdrv_sndbuff)[27] = bsdsum(glob_pktdrv_sndbuff + 56, bufflen - 56);
-  }
-  /* I do not copy anything more into glob_pktdrv_sndbuff - the caller is
-   * expected to have already copied all relevant data into glob_pktdrv_sndbuff+60
-   * copybytes((unsigned char far *)glob_pktdrv_sndbuff + 60, (unsigned char far *)buff, bufflen);
-   */
+  //if (bufflen > sizeof(pm_dfs_buffer)) return(0);
 
-  /* send the query frame and wait for an answer for about 100ms. then, resend
-   * the query again and again, up to 5 times. the RTC clock at 0x46C is used
-   * as a timing reference. */
+  ((unsigned short far *)pm_dfs_buffer)[26] = bufflen; /* [52] < total frame len  */
+  //pm_dfs_buffer[57] = seq;                       /* seq number              */
+  pm_dfs_buffer[58] = drive;                       /* [58] < drive number     */
+  pm_dfs_buffer[59] = query;                       /* [59] < AL value (query) */
 
-#if PICOMEM // Modified Send packet for PicoMEM
-
-#else
-  glob_pktdrv_recvbufflen = 0; /* mark the receiving buffer empty */
-  for (count = 5; count != 0; count--) { /* faster than count=0; count<5; count++ */
-    /* send the query frame out */
-    _asm {
-      /* save registers */
-      push ax
-      push cx
-      push dx /* may be changed by the packet driver (set to errno) */
-      push si
-      pushf /* must be last register pushed (expected by 'call') */
-      /* */
-      mov ah, 4h   /* SendPkt */
-      mov cx, bufflen
-      mov si, offset glob_pktdrv_sndbuff /* DS:SI points to buff, I do not
-                                 modify DS because the buffer should already
-                                 be in my data segment (small memory model) */
-      /* int to variable vector is a mess, so I have fetched its vector myself
-       * and pushf + cli + call far it now to simulate a regular int */
-      /* pushf -- already on the stack */
-      cli
-      call dword ptr glob_pktdrv_pktcall
-      /* restore registers (but not pushf, already restored by call) */
-      pop si
-      pop dx
-      pop cx
-      pop ax
-    }
-
-    /* wait for (and validate) the answer frame */
-    t = *rtc;
-    for (;;) {
-      int i;
-      if ((t != *rtc) && (t+1 != *rtc) && (*rtc != 0)) break; /* timeout, retry */
-      if (glob_pktdrv_recvbufflen < 1) continue;
-      /* I've got something! */
-      /* is the frame long enough for me to care? */
-      if (glob_pktdrv_recvbufflen < 60) goto ignoreframe;
-      /* is it for me? (correct src mac & dst mac) */
-      for (i = 0; i < 6; i++) {
-        if (glob_pktdrv_recvbuff[i] != GLOB_LMAC[i]) goto ignoreframe;
-        if ((updatermac == 0) && (glob_pktdrv_recvbuff[i+6] != GLOB_RMAC[i])) goto ignoreframe;
-      }
-      /* is the ethertype and seq what I expect? */
-      if ((((unsigned short *)glob_pktdrv_recvbuff)[6] != 0xF5EDu) || (glob_pktdrv_recvbuff[57] != seq)) goto ignoreframe;
-
-      /* validate frame length (if provided) */
-      if (((unsigned short *)glob_pktdrv_recvbuff)[26] > glob_pktdrv_recvbufflen) {
-        /* frame appears to be truncated */
-        goto ignoreframe;
-      }
-      if (((unsigned short *)glob_pktdrv_recvbuff)[26] < 60) {
-        /* malformed frame */
-        goto ignoreframe;
-      }
-      glob_pktdrv_recvbufflen = ((unsigned short *)glob_pktdrv_recvbuff)[26];
-
-      /* if CKSUM enabled, check it on received frame */
-      if (glob_pktdrv_sndbuff[56] & 128) {
-        /* is the cksum ok? */
-        if (bsdsum(glob_pktdrv_recvbuff + 56, glob_pktdrv_recvbufflen - 56) != (((unsigned short *)glob_pktdrv_recvbuff)[27])) {
-          /* DEBUG - prints a '!' on screen on cksum error */ /*{
-            unsigned short far *v = (unsigned short far *)0xB8000000l;
-            v[0] = 0x4000 | '!';
-          }*/
-          goto ignoreframe;
-        }
-      }
-#endif // Modified Send Query for PicoMEM
-
-#if PICOMEM // Modified Send packet for PicoMEM
+  pm_io_cmd(CMD_EthDFS_Send,bufflen);   // Send the' Command
+  pm_wait_cmd_end();                    // Wait for the answer
 
 // Add code to receive answer
-// *replyptr = 
-// *replyax = 
-// return("length" - 60);
-#else      
-      /* return buffer (without headers and seq) */
-      *replyptr = glob_pktdrv_recvbuff + 60;
-      *replyax = (unsigned short *)(glob_pktdrv_recvbuff + 58);
-      /* update glob_rmac if needed, then return */
-      if (updatermac != 0) copybytes(GLOB_RMAC, glob_pktdrv_recvbuff + 6, 6);
-      return(glob_pktdrv_recvbufflen - 60);
-#endif      
+  *replyax  = ((unsigned short far *)pm_dfs_buffer)[29];   // AX answered at 29x2
+  //length = ((unsigned short far *)pm_dfs_buffer)[26];    //
+  length = pm_dfs_buffer[52]+pm_dfs_buffer[53]<<8;         //
 
-#if PICOMEM // Modified No received packet code
+  for (i=48;i<60;i++) printf("%d;",pm_dfs_buffer[i]);
+  printf(" %x,%d ",*replyax,length);
+  if (length!=0xFFFFu) return (length-60);
 
-#else 
-      ignoreframe: /* ignore this frame and wait for the next one */
-      glob_pktdrv_recvbufflen = 0; /* mark the buffer empty */
-    }  
-  }
-#endif
   return(0xFFFFu); /* return error */
 }
 
@@ -450,11 +284,12 @@ void process2f(void) {
   char far *dbg_msg = NULL;
 #endif
   short i;
-  unsigned char *answer;
-  unsigned char *buff; /* pointer to the "query arguments" part of glob_pktdrv_sndbuff */
+  unsigned char far *answer;
+  unsigned char far *buff; /* pointer to the "query arguments" part of pm_dfs_buffer */
   unsigned char subfunction;
-  unsigned short *ax; /* used to collect the resulting value of AX */
-  buff = glob_pktdrv_sndbuff + 60;
+  unsigned short far *ax;  /* used to collect the resulting value of AX */
+  buff = pm_dfs_buffer + 60;
+  answer = buff;
 
   /* DEBUG output (RED) */
 #if DEBUGLEVEL > 0
@@ -493,7 +328,7 @@ void process2f(void) {
       i -= 2;
       copybytes(buff, glob_sdaptr->fn1 + 2, i);
       /* send query providing fn1 */
-      if (sendquery(subfunction, glob_reqdrv, i, &answer, &ax, 0) == 0) {
+      if (sendquery(subfunction, glob_reqdrv, i, &ax) == 0) {
         glob_intregs.w.ax = *ax;
         if (*ax != 0) glob_intregs.w.flags |= INTR_CF;
       } else {
@@ -516,7 +351,7 @@ void process2f(void) {
       i -= 2;
       copybytes(buff, glob_sdaptr->fn1 + 2, i);
       /* send query providing fn1 */
-      if (sendquery(AL_CHDIR, glob_reqdrv, i, &answer, &ax, 0) == 0) {
+      if (sendquery(AL_CHDIR, glob_reqdrv, i, &ax) == 0) {
         glob_intregs.w.ax = *ax;
         if (*ax != 0) glob_intregs.w.flags |= INTR_CF;
       } else {
@@ -532,7 +367,7 @@ void process2f(void) {
       struct sftstruct far *sftptr = MK_FP(glob_intregs.x.es, glob_intregs.x.di);
       if (sftptr->handle_count > 0) sftptr->handle_count--;
       ((unsigned short *)buff)[0] = sftptr->start_sector;
-      if (sendquery(AL_CLSFIL, glob_reqdrv, 2, &answer, &ax, 0) == 0) {
+      if (sendquery(AL_CLSFIL, glob_reqdrv, 2, &ax) == 0) {
         if (*ax != 0) FAILFLAG(*ax);
       }
       }
@@ -566,7 +401,7 @@ void process2f(void) {
         ((unsigned long *)buff)[0] = sftptr->file_pos + totreadlen;
         ((unsigned short *)buff)[2] = sftptr->start_sector;
         ((unsigned short *)buff)[3] = chunklen;
-        len = sendquery(AL_READFIL, glob_reqdrv, 8, &answer, &ax, 0);
+        len = sendquery(AL_READFIL, glob_reqdrv, 8, &ax);
         if (len == 0xFFFFu) { /* network error */
           FAILFLAG(2);
           break;
@@ -608,7 +443,7 @@ void process2f(void) {
         ((unsigned long *)buff)[0] = sftptr->file_pos;
         ((unsigned short *)buff)[2] = sftptr->start_sector;
         copybytes(buff + 6, glob_sdaptr->curr_dta + written, chunklen);
-        len = sendquery(AL_WRITEFIL, glob_reqdrv, chunklen + 6, &answer, &ax, 0);
+        len = sendquery(AL_WRITEFIL, glob_reqdrv, chunklen + 6, &ax);
         if (len == 0xFFFFu) { /* network error */
           FAILFLAG(2);
           break;
@@ -635,7 +470,7 @@ void process2f(void) {
       if (glob_intregs.h.bl > 1) FAILFLAG(2); /* BL should be either 0 (lock) or 1 (unlock) */
       /* copy 8*CX bytes from DS:DX to buff+4 (parameters block) */
       copybytes(buff + 4, MK_FP(glob_intregs.x.ds, glob_intregs.x.dx), glob_intregs.x.cx << 3);
-      if (sendquery(AL_LOCKFIL + glob_intregs.h.bl, glob_reqdrv, (glob_intregs.x.cx << 3) + 4, &answer, &ax, 0) != 0) {
+      if (sendquery(AL_LOCKFIL + glob_intregs.h.bl, glob_reqdrv, (glob_intregs.x.cx << 3) + 4, &ax) != 0) {
         FAILFLAG(2);
       }
       }
@@ -645,7 +480,7 @@ void process2f(void) {
       FAILFLAG(2);
       break;
     case AL_DISKSPACE: /*** 0Ch: get disk information ***********************/
-      if (sendquery(AL_DISKSPACE, glob_reqdrv, 0, &answer, &ax, 0) == 6) {
+      if (sendquery(AL_DISKSPACE, glob_reqdrv, 0, &ax) == 6) {
         glob_intregs.w.ax = *ax; /* sectors per cluster */
         glob_intregs.w.bx = ((unsigned short *)answer)[0]; /* total clusters */
         glob_intregs.w.cx = ((unsigned short *)answer)[1]; /* bytes per sector */
@@ -671,7 +506,7 @@ void process2f(void) {
       dbg_VGA[dbg_startoffset + dbg_xpos++] = 0x1000 | dbg_hexc[(glob_reqstkword >> 4) & 15];
       dbg_VGA[dbg_startoffset + dbg_xpos++] = 0x1000 | dbg_hexc[glob_reqstkword & 15];
     #endif
-      i = sendquery(AL_SETATTR, glob_reqdrv, i - 1, &answer, &ax, 0);
+      i = sendquery(AL_SETATTR, glob_reqdrv, i - 1, &ax);
       if (i != 0) {
         FAILFLAG(2);
       } else if (*ax != 0) {
@@ -686,7 +521,7 @@ void process2f(void) {
       }
       i -= 2;
       copybytes(buff, glob_sdaptr->fn1 + 2, i);
-      i = sendquery(AL_GETATTR, glob_reqdrv, i, &answer, &ax, 0);
+      i = sendquery(AL_GETATTR, glob_reqdrv, i, &ax);
       if ((unsigned short)i == 0xffffu) {
         FAILFLAG(2);
       } else if ((i != 9) || (*ax != 0)) {
@@ -730,7 +565,7 @@ void process2f(void) {
       i -= 2; /* trim out the drive: part (C:\FILE --> \FILE) */
       copybytes(buff + 1 + buff[0], glob_sdaptr->fn2 + 2, i);
       /* send the query out */
-      i = sendquery(AL_RENAME, glob_reqdrv, 1 + buff[0] + i, &answer, &ax, 0);
+      i = sendquery(AL_RENAME, glob_reqdrv, 1 + buff[0] + i, &ax);
       if (i != 0) {
         FAILFLAG(2);
       } else if (*ax != 0) {
@@ -750,7 +585,7 @@ void process2f(void) {
       i -= 2;
       copybytes(buff, glob_sdaptr->fn1 + 2, i);
       /* send query */
-      i = sendquery(AL_DELETE, glob_reqdrv, i, &answer, &ax, 0);
+      i = sendquery(AL_DELETE, glob_reqdrv, i, &ax);
       if ((unsigned short)i == 0xffffu) {
         FAILFLAG(2);
       } else if ((i != 0) || (*ax != 0)) {
@@ -775,7 +610,7 @@ void process2f(void) {
       /* ((unsigned short *)buff)[1] = glob_sdaptr->spop_act;  */ /* action code (SPOP only) */
       /* ((unsigned short *)buff)[2] = glob_sdaptr->spop_mode; */ /* open mode (SPOP only) */
       copybytes(buff + 6, glob_sdaptr->fn1 + 2, i);
-      i = sendquery(subfunction, glob_reqdrv, i + 6, &answer, &ax, 0);
+      i = sendquery(subfunction, glob_reqdrv, i + 6, &ax);
       if ((unsigned short)i == 0xffffu) {
         FAILFLAG(2);
       } else if ((i != 25) || (*ax != 0)) {
@@ -854,7 +689,7 @@ void process2f(void) {
         i += 5; /* i must provide the exact query's length */
       }
       /* send query to remote peer and wait for answer */
-      i = sendquery(subfunction, glob_reqdrv, i, &answer, &ax, 0);
+      i = sendquery(subfunction, glob_reqdrv, i, &ax);
       if (i == 0xffffu) {
         if (subfunction == AL_FINDFIRST) {
           FAILFLAG(2); /* a failed findfirst returns error 2 (file not found) */
@@ -918,7 +753,7 @@ void process2f(void) {
       ((unsigned short *)buff)[1] = glob_intregs.x.cx;
       ((unsigned short *)buff)[2] = sftptr->start_sector;
       /* send query to remote peer and wait for answer */
-      i = sendquery(AL_SKFMEND, glob_reqdrv, 6, &answer, &ax, 0);
+      i = sendquery(AL_SKFMEND, glob_reqdrv, 6, &ax);
       if (i == 0xffffu) {
         FAILFLAG(2);
       } else if ((*ax != 0) || (i != 4)) {
@@ -953,7 +788,7 @@ void __interrupt __far inthandler(union INTPACK r) {
     /* save AX */
     push ax
     /* switch to new (patched) DS */
-    mov ax, 0
+    mov ax, 0  // 0 will be replaced by the real DS
     mov ds, ax
     /* save one word from the stack (might be used by SETATTR later)
      * The original stack should be at SS:BP+30 */
@@ -964,27 +799,27 @@ void __interrupt __far inthandler(union INTPACK r) {
      * frame - debugging ONLY! */
     /*
     mov ax, ss:[BP+20]
-    mov word ptr [glob_pktdrv_sndbuff+16], ax
+    mov word ptr [pm_dfs_buffer+16], ax
     mov ax, ss:[BP+22]
-    mov word ptr [glob_pktdrv_sndbuff+18], ax
+    mov word ptr [pm_dfs_buffer+18], ax
     mov ax, ss:[BP+24]
-    mov word ptr [glob_pktdrv_sndbuff+20], ax
+    mov word ptr [pm_dfs_buffer+20], ax
     mov ax, ss:[BP+26]
-    mov word ptr [glob_pktdrv_sndbuff+22], ax
+    mov word ptr [pm_dfs_buffer+22], ax
     mov ax, ss:[BP+28]
-    mov word ptr [glob_pktdrv_sndbuff+24], ax
+    mov word ptr [pm_dfs_buffer+24], ax
     mov ax, ss:[BP+30]
-    mov word ptr [glob_pktdrv_sndbuff+26], ax
+    mov word ptr [pm_dfs_buffer+26], ax
     mov ax, ss:[BP+32]
-    mov word ptr [glob_pktdrv_sndbuff+28], ax
+    mov word ptr [pm_dfs_buffer+28], ax
     mov ax, ss:[BP+34]
-    mov word ptr [glob_pktdrv_sndbuff+30], ax
+    mov word ptr [pm_dfs_buffer+30], ax
     mov ax, ss:[BP+36]
-    mov word ptr [glob_pktdrv_sndbuff+32], ax
+    mov word ptr [pm_dfs_buffer+32], ax
     mov ax, ss:[BP+38]
-    mov word ptr [glob_pktdrv_sndbuff+34], ax
+    mov word ptr [pm_dfs_buffer+34], ax
     mov ax, ss:[BP+40]
-    mov word ptr [glob_pktdrv_sndbuff+36], ax
+    mov word ptr [pm_dfs_buffer+36], ax
     */
     /* restore AX */
     pop ax
@@ -1144,129 +979,6 @@ void __interrupt __far inthandler(union INTPACK r) {
 void begtextend(void) {
 }
 
-#if PICOMEM == 0 // Not used fonctions (Network)
-
-/* registers a packet driver handle to use on subsequent calls */
-static int pktdrv_accesstype(void) {
-  unsigned char cflag = 0;
-
-  _asm {
-    mov ax, 201h        /* AH=subfunction access_type(), AL=if_class=1(eth) */
-    mov bx, 0ffffh      /* if_type = 0xffff means 'all' */
-    mov dl, 0           /* if_number: 0 (first interface) */
-    /* DS:SI should point to the ethertype value in network byte order */
-    mov si, offset glob_pktdrv_sndbuff + 12 /* I don't set DS, it's good already */
-    mov cx, 2           /* typelen (ethertype is 16 bits) */
-    /* ES:DI points to the receiving routine */
-    push cs /* write segment of pktdrv_recv into es */
-    pop es
-    mov di, offset pktdrv_recv
-    mov cflag, 1        /* pre-set the cflag variable to failure */
-    /* int to variable vector is a mess, so I have fetched its vector myself
-     * and pushf + cli + call far it now to simulate a regular int */
-    pushf
-    cli
-    call dword ptr glob_pktdrv_pktcall
-    /* get CF state - reset cflag if CF clear, and get pkthandle from AX */
-    jc badluck   /* Jump if Carry */
-    mov word ptr [glob_data + GLOB_DATOFF_PKTHANDLE], ax /* Pkt handle should be in AX */
-    mov cflag, 0
-    badluck:
-  }
-
-  if (cflag != 0) return(-1);
-  return(0);
-}
-
-/* get my own MAC addr. target MUST point to a space of at least 6 chars */
-static void pktdrv_getaddr(unsigned char *dst) {
-  _asm {
-    mov ah, 6                       /* subfunction: get_addr() */
-    mov bx, word ptr [glob_data + GLOB_DATOFF_PKTHANDLE];  /* handle */
-    push ds                         /* write segment of dst into es */
-    pop es
-    mov di, dst                     /* offset of dst (in small mem model dst IS an offset) */
-    mov cx, 6                       /* expected length (ethernet = 6 bytes) */
-    /* int to variable vector is a mess, so I have fetched its vector myself
-     * and pushf + cli + call far it now to simulate a regular int */
-    pushf
-    cli
-    call dword ptr glob_pktdrv_pktcall
-  }
-}
-
-
-static int pktdrv_init(unsigned short pktintparam, int nocksum) {
-  unsigned short far *intvect = (unsigned short far *)MK_FP(0, pktintparam << 2);
-  unsigned short pktdrvfuncoffs = *intvect;
-  unsigned short pktdrvfuncseg = *(intvect+1);
-  unsigned short rseg = 0, roff = 0;
-  char far *pktdrvfunc = (char far *)MK_FP(pktdrvfuncseg, pktdrvfuncoffs);
-  int i;
-  char sig[8];
-  /* preload sig with "PKT DRVR" -- I could it just as well with
-   * char sig[] = "PKT DRVR", but I want to avoid this landing in
-   * my DATA segment so it doesn't pollute the TSR memory space. */
-  sig[0] = 'P';
-  sig[1] = 'K';
-  sig[2] = 'T';
-  sig[3] = ' ';
-  sig[4] = 'D';
-  sig[5] = 'R';
-  sig[6] = 'V';
-  sig[7] = 'R';
-
-  /* set my ethertype to 0xF5ED (EDF5 in network byte order) */
-  glob_pktdrv_sndbuff[12] = 0xED;
-  glob_pktdrv_sndbuff[13] = 0xF5;
-  /* set protover and CKSUM flag in send buffer (I won't touch it again) */
-  if (nocksum == 0) {
-    glob_pktdrv_sndbuff[56] = PROTOVER | 128; /* protocol version */
-  } else {
-    glob_pktdrv_sndbuff[56] = PROTOVER;       /* protocol version */
-  }
-
-  pktdrvfunc += 3; /* skip three bytes of executable code */
-  for (i = 0; i < 8; i++) if (sig[i] != pktdrvfunc[i]) return(-1);
-
-  glob_data.pktint = pktintparam;
-
-  /* fetch the vector of the pktdrv interrupt and save it for later */
-  _asm {
-    mov ah, 35h /* AH=GetVect */
-    mov al, byte ptr [glob_data] + GLOB_DATOFF_PKTINT; /* AL=int number */
-    push es /* save ES and BX (will be overwritten) */
-    push bx
-    int 21h
-    mov rseg, es
-    mov roff, bx
-    pop bx
-    pop es
-  }
-  glob_pktdrv_pktcall = rseg;
-  glob_pktdrv_pktcall <<= 16;
-  glob_pktdrv_pktcall |= roff;
-
-  return(pktdrv_accesstype());
-}
-#endif //(PICOMEM==0)
-
-#if PICOMEM == 0 // Not used fonction
-static void pktdrv_free(unsigned long pktcall) {
-  _asm {
-    mov ah, 3
-    mov bx, word ptr [glob_data + GLOB_DATOFF_PKTHANDLE]
-    /* int to variable vector is a mess, so I have fetched its vector myself
-     * and pushf + cli + call far it now to simulate a regular int */
-    pushf
-    cli
-    call dword ptr glob_pktdrv_pktcall
-  }
-  /* if (regs.x.cflag != 0) return(-1);
-  return(0);*/
-}
-#endif //(PICOMEM==0)
-
 static struct sdastruct far *getsda(void) {
   /* DOS 3.0+ - GET ADDRESS OF SDA (Swappable Data Area)
    * AX = 5D06h
@@ -1414,7 +1126,7 @@ struct argstruct {
 /* parses (and applies) command-line arguments. returns 0 on success,
  * non-zero otherwise */
 static int parseargv(struct argstruct *args) {
-  int i, drivemapflag = 0, gotmac = 0;
+  int i, drivemapflag = 0/*, gotmac = 0*/;
 
   /* iterate through arguments, if any */
   for (i = 1; i < args->argc; i++) {
@@ -1451,6 +1163,7 @@ static int parseargv(struct argstruct *args) {
           if (arg != NULL) return(-4);
           args->flags |= ARGFL_QUIET;
           break;
+#if PICOMEM == 0 // Not used fonctions (Network)           
         case 'p':
           if (arg == NULL) return(-4);
           /* I expect an exactly 2-characters string */
@@ -1461,6 +1174,7 @@ static int parseargv(struct argstruct *args) {
           if (arg != NULL) return(-4);
           args->flags |= ARGFL_NOCKSUM;
           break;
+#endif          
         case 'u':  /* unload EtherDFS */
           if (arg != NULL) return(-4);
           args->flags |= ARGFL_UNLOAD;
@@ -1470,6 +1184,7 @@ static int parseargv(struct argstruct *args) {
       }
       continue;
     }
+
 #if PICOMEM == 0 // Not used fonctions (Network)    
     /* not a drive mapping nor an option -> so it's a MAC addr perhaps? */
     if (gotmac != 0) return(-1);  /* fail if got a MAC already */
@@ -1480,17 +1195,18 @@ static int parseargv(struct argstruct *args) {
       if (string2mac(GLOB_RMAC, args->argv[i]) != 0) return(-1);
     }
 #endif
-    gotmac = 1;
   }
+
+  args->flags |= ARGFL_NOCKSUM;
 
   /* fail if MAC+unload or mapping+unload */
   if (args->flags & ARGFL_UNLOAD) {
-    if ((gotmac != 0) || (drivemapflag != 0)) return(-1);
+    if (drivemapflag != 0) return(-1);
     return(0);
   }
 
-  /* did I get at least one drive mapping? and a MAC? */
-  if ((drivemapflag == 0) || (gotmac == 0)) return(-6);
+  /* did I get at least one drive mapping? */
+  if (drivemapflag == 0) return(-6);
 
   return(0);
 }
@@ -1655,6 +1371,17 @@ int main(int argc, char **argv) {
   int i;
   unsigned short volatile newdataseg; /* 'volatile' just in case the compiler would try to optimize it out, since I set it through in-line assembly */
 
+/*
+   BIOS_Segment=0xD000;
+   DFS_Buff_Offs=0x0000;
+   pm_dfs_buffer=(unsigned char far *) MK_FP(BIOS_Segment,DFS_Buff_Offs);
+
+   pm_dfs_buffer[0]=0xAA;
+
+   printf("Buffer %p first bytes: %x, %x, %x\r\n",pm_dfs_buffer,pm_dfs_buffer[0], pm_dfs_buffer[1], pm_dfs_buffer[2]);
+   return(0);
+*/
+
   /* set all drive mappings as 'unused' */
   for (i = 0; i < 26; i++) glob_data.ldrv[i] = 0xff;
 
@@ -1706,9 +1433,9 @@ int main(int argc, char **argv) {
 
   /* is it all about unloading myself? */
   if ((args.flags & ARGFL_UNLOAD) != 0) {
-    unsigned char etherdfsid, pktint;
-    unsigned short myseg, myoff, myhandle, mydataseg;
-    unsigned long pktdrvcall;
+    unsigned char etherdfsid/*, pktint*/;
+    unsigned short myseg, myoff/*, myhandle*/, mydataseg;
+    //unsigned long pktdrvcall; 
     struct tsrshareddata far *tsrdata;
     unsigned char far *int2fptr;
 
@@ -1789,6 +1516,8 @@ int main(int argc, char **argv) {
       pop ds
       pop ax
     }
+
+#if PICOMEM == 0 // Not used fonctions (Network)
     /* get the address of the packet driver routine */
     pktint = tsrdata->pktint;
     _asm {
@@ -1829,6 +1558,8 @@ int main(int argc, char **argv) {
       pop bx
       pop ax
     }
+#endif
+
     /* set all mapped drives as 'not available' */
     for (i = 0; i < 26; i++) {
       if (tsrdata->ldrv[i] == 0xff) continue;
@@ -1843,7 +1574,7 @@ int main(int argc, char **argv) {
       #include "msg\\unloaded.c"
     }
     return(0);
-  }
+  }  // Unload End
 
   /* remember current int 2f handler, we might over-write it soon (also I
    * use it to see if I'm already loaded) */
@@ -1871,13 +1602,26 @@ int main(int argc, char **argv) {
 #if (DOSBOX==0)
   /* if any of the to-be-mapped drives is already active, fail */
   for (i = 0; i < 26; i++) {
+/*    
+    if (i<10)
+    {
+    printf("Drive %c ",'A'+i);
+    printf("ldrv[i] %x\r\n",glob_data.ldrv[i]);
+    cds = getcds(i);
+    if (cds != NULL) 
+      {
+ //      printf("Path: %s",&(cds->current_path[0]));
+       printf("Flags: %x\r\n",cds->flags);
+      }
+    }
+*/
     if (glob_data.ldrv[i] == 0xff) continue;
     cds = getcds(i);
     if (cds == NULL) {
       #include "msg\\mapfail.c"
       return(1);
     }
-    if (cds->flags != 0) {
+    if (cds->flags != 0) {  //Display The requested local drive letter is already in use.
       #include "msg\\drvactiv.c"
       return(1);
     }
@@ -1891,7 +1635,7 @@ int main(int argc, char **argv) {
     #include "msg\\memfail.c"
     return(1);
   }
-
+ 
   /* copy current DS into the new segment and switch to new DS/SS */
   _asm {
     /* save registers on the stack */
@@ -1937,16 +1681,34 @@ int main(int argc, char **argv) {
 
   // check if the PicoMEM BIOS is present.
   // It is mandatory as the data transfer use the RAM emulation
+
   if (! pm_irq_detect())
      {
-      printf("PicoMEM not detected\n");
-      return 1;
+      #include "msg\\pmnotdet.c"
+      return(1);
      }
      else
      {
-      printf("PicoMEM Addr: %X Port: %X\n",BIOS_Segment,PM_Base);
+      printf("PicoMEM detected Addr: %X Port: %X\r\n",BIOS_Segment,PM_Base);
      }
 
+//  unsigned char dfs_ver;
+//  dfs_ver=pm_dfs_detect();
+
+  if (pm_dfs_detect()==0)
+     {
+      #include "msg\\dfsnotdet.c"
+      return(1);
+     }
+     else
+     {
+      printf("DFS support detected : %x\r\n",DFS_Buff_Offs);
+     } 
+  
+   // Now the pm_dfs_buffer point to the shared RAM address
+   pm_dfs_buffer=(unsigned char far *) MK_FP(BIOS_Segment,DFS_Buff_Offs);
+
+   printf("Buffer %p first bytes: %x, %x, %x\r\n",pm_dfs_buffer,pm_dfs_buffer[0], pm_dfs_buffer[1], pm_dfs_buffer[2]);
 
  #else // No PICOMEM
   /* init the packet driver interface */
@@ -1969,8 +1731,7 @@ int main(int argc, char **argv) {
 
 
  #if PICOMEM // Should send a "Packet" to verify that the Disk driver is there
- // Add etherDFS Command detection
- printf("PicoMEM etherDFS command detection\n");
+
 
  #else // No PICOMEM
   /* should I auto-discover the server? */
@@ -1981,7 +1742,7 @@ int main(int argc, char **argv) {
     for (i = 0; i < 6; i++) GLOB_RMAC[i] = 0xff;
     for (i = 0; glob_data.ldrv[i] == 0xff; i++); /* find first mapped disk */
     /* send a discovery frame that will update glob_rmac */
-    if (sendquery(AL_DISKSPACE, i, 0, &answer, &ax, 1) != 6) {
+    if (sendquery(AL_DISKSPACE, i, 0, &answer, &ax) != 6) {
       #include "msg\\nosrvfnd.c"
       pktdrv_free(glob_pktdrv_pktcall); /* free the pkt drv and quit */
       freeseg(newdataseg);
@@ -1990,13 +1751,14 @@ int main(int argc, char **argv) {
   }
 #endif  
 
+/*
 #if PICOMEM // Test : Quit
 
   freeseg(newdataseg);  // Free the new data segment allocation
   return(1);
 
  #endif // PICOMEM
-
+*/
 
   /* set all drives as being 'network' drives (also add the PHYSICAL bit,
    * otherwise MS-DOS 6.0 will ignore the drive) */
@@ -2011,27 +1773,11 @@ int main(int argc, char **argv) {
     cds->current_path[3] = 0;
   }
 
-  // Display the Driver installed message and disk list
+  // Display the Driver installed message
   if ((args.flags & ARGFL_QUIET) == 0) {
     char buff[20];
     #include "msg\\instlled.c"
-#if PICOMEM == 0   // Don't display MAC Address
-    for (i = 0; i < 6; i++) {
-      byte2hex(buff + i + i + i, GLOB_LMAC[i]);
-    }
-#endif    
-    for (i = 2; i < 16; i += 3) buff[i] = ':';
-    buff[17] = '$';
-    outmsg(buff);
-    #include "msg\\pktdrvat.c"
-#if PICOMEM == 0   // Don't display IRQ
-    byte2hex(buff, glob_data.pktint);
-#endif      
-    buff[2] = ')';
-    buff[3] = '\r';
-    buff[4] = '\n';
-    buff[5] = '$';
-    outmsg(buff);
+  // Display the disk list
     for (i = 0; i < 26; i++) {
       int z;
       if (glob_data.ldrv[i] == 0xff) continue;
@@ -2051,16 +1797,6 @@ int main(int argc, char **argv) {
       buff[13] = 'n';
       buff[14] = ' ';
       buff[15] = '$';
-      outmsg(buff);
-#if PICOMEM == 0   // Don't display MAC Address      
-      for (z = 0; z < 6; z++) {
-        byte2hex(buff + z + z + z, GLOB_RMAC[z]);
-      }
-#endif        
-      for (z = 2; z < 16; z += 3) buff[z] = ':';
-      buff[17] = '\r';
-      buff[18] = '\n';
-      buff[19] = '$';
       outmsg(buff);
     }
   }

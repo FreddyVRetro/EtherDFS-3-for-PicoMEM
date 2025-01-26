@@ -12,6 +12,7 @@ Source : UNDOCUMENTED DOS Page 173
 
 typedef unsigned char BYTE;
 typedef unsigned short WORD;
+
 typedef struct dpb {
 BYTE drive;                 // Logical drive # assoc with DPB (A=0,B=1,...)
 BYTE unit;                  // Driver unit number of DPB
@@ -45,14 +46,14 @@ union {
   } vers;
 } DPB;
 
-ifndef MK_FP
+#ifndef MK_FP
 #define MK_FP(seg,ofs) \
 ((void far *)(((unsigned long)(seg)<<16) | (ofs)))
 #endif
 
 void fail(char *s) { puts(s); exit(1); }
 
-void displayCDPB far *dpb)
+void display(DPB far *dpb)
 {
 unsigned Long bytes__per_clust =
     dpb->bytes_per_sect * (dpb->sectors_per_cluster + 1);
@@ -110,7 +111,7 @@ for (i=1; i<=Lastdrive; i++)
      else if ((*pfLoppy == 0) && (i == 2)) continue;
      r.h.ah = 0x32;
      r . h . d L = i ;
-     intdosxC&r, 8r, &s);
+     intdosx(&r, 8r, &s);
      if (r.h.aL != OxFF)
      dispLay((DPB far *) MK_FP(s.ds, r.x.bx));
 }

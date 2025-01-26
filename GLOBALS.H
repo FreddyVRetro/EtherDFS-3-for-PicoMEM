@@ -51,14 +51,14 @@ static struct tsrshareddata {
 static unsigned char glob_pktdrv_recvbuff[FRAMESIZE];
 static signed short volatile glob_pktdrv_recvbufflen; /* length of the frame in buffer, 0 means "free", and neg value means "awaiting" */
 #endif
-static unsigned char glob_pktdrv_sndbuff[FRAMESIZE]; /* this not only is my send-frame buffer, but I also use it to store permanently lmac, rmac, ethertype and PROTOVER at proper places */
+unsigned char far *pm_dfs_buffer; /* this not only is my send-frame buffer, but I also use it to store permanently lmac, rmac, ethertype and PROTOVER at proper places */
 #if PICOMEM == 0 // No need for packet receive IRQ
 static unsigned long glob_pktdrv_pktcall;     /* vector address of the pktdrv interrupt */
 #endif
 
 /* a few definitions for data that points to my sending buffer */
-#define GLOB_LMAC (glob_pktdrv_sndbuff + 6) /* local MAC address */
-#define GLOB_RMAC (glob_pktdrv_sndbuff)     /* remote MAC address */
+#define GLOB_LMAC (pm_dfs_buffer + 6) /* local MAC address */
+#define GLOB_RMAC (pm_dfs_buffer)     /* remote MAC address */
 
 static unsigned char glob_reqdrv;  /* the requested drive, set by the INT 2F *
                                     * handler and read by process2f()        */
@@ -78,11 +78,9 @@ static unsigned char glob_multiplexid;
 static union INTPACK glob_intregs;
 
 #if PICOMEM  // Variables for pm_s_lib.h, must be placed in Data segment
-static unsigned short PM_Base=0;         // PicoMEM I/O Base address
-static unsigned char  PM_PicoID=0;       // Pi Pico board model/ID 
-static unsigned char  PM_BoardID=0;      // PicoMEM Board model/ID
-static unsigned short BIOS_Segment=0;    // PicoMEM BIOS segment (Can be 0 if not detected)
-static unsigned short PM_PCCR_Param=0;   // Commands parameter RAM address (To send/Receive small data to/from command)
+static unsigned short PM_Base=0;          // PicoMEM I/O Base address (0 if not detected)
+static unsigned short BIOS_Segment =0;     // PicoMEM BIOS segment (Can be 0 if not detected)
+static unsigned short DFS_Buff_Offs=0;    // PicoMEM DFS Offset
 #endif
 
 #endif

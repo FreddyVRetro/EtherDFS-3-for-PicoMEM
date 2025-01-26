@@ -66,44 +66,45 @@ void genmsg(char *fname, char *msg) {
 int main(void) {
 
   genmsg("msg\\help.c",
-    "EtherDFS v" PVER " / Copyright (C) " PDATE " Mateusz Viste\r\n"
-    "A network drive for DOS, running over raw ethernet.\r\n"
-    "Special version for DOS 3.20 - 3.30 only / (C) 2023 Frank Haeseler.\r\n"
+    "PicoMEM DFS Driver for SD/USB access by FreddyV\r\n"
+    "Based on EtherDFS v" PVER " / Copyright (C) " PDATE " Mateusz Viste\r\n"
     "\r\n"
-    "Usage: etherdfs SRVMAC rdrv-ldrv [rdrv2-ldrv2 ...] [options]\r\n"
-    "       etherdfs /u\r\n"
+    "Usage: pmdfs3 rdrv-ldrv [rdrv2-ldrv2 ...] [options]\r\n"
+    "       pmdfs3 /u\r\n"
+    "       rdrv is S for SD, U for USB\r\n"
     "\r\n"
     "Options:\r\n"
-    "  /p=XX   use packet driver at interrupt XX (autodetect otherwise)\r\n"
-    "  /n      disable EtherDFS checksums\r\n"
     "  /q      quiet mode (print nothing if loaded/unloaded successfully)\r\n"
-    "  /u      unload EtherDFS from memory\r\n"
+    "  /u      unload PMDFS from memory\r\n"
     "\r\n"
-    "Use '::' as SRVMAC for server auto-discovery.\r\n"
-    "\r\n"
-    "Examples:  etherdfs 6d:4f:4a:4d:49:52 C-F /q\r\n"
-    "           etherdfs :: C-X D-Y E-Z /p=6F\r\n"
+    "Example: pmdfs3 S-D U-E\r\n"
+    "         > will map the SD to D and USB to E\r\n"
     );
 
-  genmsg("msg\\unsupdos.c", "Wrong DOS version! This version of EtherDFS requires MS-DOS 3.20 - 3.30.\r\n");
+  genmsg("msg\\unsupdos.c", "Wrong DOS version! This version of PMDFS requires MS-DOS 3.20 - 3.30.\r\n");
 
   genmsg("msg\\noredir.c", "Redirector installation has been forbidden either by DOS or another process.\r\n");
 
-  genmsg("msg\\loaded.c", "EtherDFS is installed.\r\n");
+  genmsg("msg\\loaded.c", "PMDFS is installed.\r\n");
 
-  genmsg("msg\\alrload.c", "EtherDFS is already installed and cannot be loaded twice.\r\n");
+  genmsg("msg\\alrload.c", "PMDFS is already installed and cannot be loaded twice.\r\n");
 
-  genmsg("msg\\notload.c", "EtherDFS is not loaded, so it cannot be unloaded.\r\n");
+  genmsg("msg\\notload.c", "PMDFS is not loaded, so it cannot be unloaded.\r\n");
 
-  genmsg("msg\\notload1.c", "EtherDFS is not loaded.\r\n");
+  genmsg("msg\\notload1.c", "PMDFS is not loaded.\r\n");
 
   genmsg("msg\\tsrcomfa.c", "Communication with the TSR failed.\r\n");
 
   genmsg("msg\\nomultpx.c", "Failed to find an available INT 2F multiplex id.\r\nYou may have loaded too many TSRs already.\r\n");
 
-  genmsg("msg\\othertsr.c", "EtherDFS cannot be unloaded because another TSR hooked its interrupt handler.\r\n");
+  genmsg("msg\\othertsr.c", "PMDFS cannot be unloaded because another TSR hooked its interrupt handler.\r\n");
 
-  genmsg("msg\\unloaded.c", "EtherDFS unloaded successfully.\r\n");
+  genmsg("msg\\unloaded.c", "PMDFS unloaded successfully.\r\n");
+
+  genmsg("msg\\pmnotdet.c", "PMDFS: PicoMEM not detected.\r\n");
+
+  genmsg("msg\\dfsnotdet.c", "PMDFS: The PicoMEM does not support DFS.\r\n");
+
 
   genmsg("msg\\mapfail.c",
     "Unable to activate the local drive mapping. You are either using an\r\n"
@@ -124,7 +125,7 @@ int main(void) {
 
   genmsg("msg\\nosrvfnd.c", "No EtherSRV server found on the LAN (not for requested drive at least).\r\n");
 
-  genmsg("msg\\instlled.c", "EtherDFS v" PVER " installed (local MAC ");
+  genmsg("msg\\instlled.c", "PMDFS v" PVER " installed");
 
   genmsg("msg\\pktdrvat.c", ", pktdrvr at INT ");
 
