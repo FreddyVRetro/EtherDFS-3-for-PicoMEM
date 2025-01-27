@@ -237,8 +237,12 @@ regs.h.ah
 
 /* sends query out, as found in pm_dfs_buffer, and awaits for an answer.
  * this function returns the length of replyptr, or 0xFFFF on error. */
-static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned short *replyax) {
-  unsigned short retlength;
+static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned short far **replyax) {
+  unsigned short length;
+  unsigned short i;
+  unsigned short a;
+  unsigned short b;
+
 
   /* resolve remote drive - no need to validate it, it has been validated
    * already by inthandler() */
@@ -249,21 +253,21 @@ static unsigned short sendquery(unsigned char query, unsigned char drive, unsign
   //if (bufflen > sizeof(pm_dfs_buffer)) return(0);
 
   ((unsigned short far *)pm_dfs_buffer)[26] = bufflen; /* [52] < total frame len  */
+  //pm_dfs_buffer[57] = seq;                       /* seq number              */
   pm_dfs_buffer[58] = drive;                       /* [58] < drive number     */
   pm_dfs_buffer[59] = query;                       /* [59] < AL value (query) */
 
-// To replace with ASM, for support of PSRAM
-  pm_io_cmd(CMD_EthDFS_Send,bufflen);   // Send the Command
+  pm_io_cmd(CMD_EthDFS_Send,bufflen);   // Send the' Command
   pm_wait_cmd_end();                    // Wait for the answer
 
 // Add code to receive answer
-  *replyax  = ((unsigned short far *)pm_dfs_buffer)[29];  // AX answered at 29x2
-  retlength = ((unsigned short far *)pm_dfs_buffer)[26];  //
-  //length = pm_dfs_buffer[52]+pm_dfs_buffer[53]<<8;      //
+  *replyax  = ((unsigned short far *)pm_dfs_buffer)[29];   // AX answered at 29x2
+  //length = ((unsigned short far *)pm_dfs_buffer)[26];    //
+  length = pm_dfs_buffer[52]+pm_dfs_buffer[53]<<8;         //
 
   for (i=48;i<60;i++) printf("%d;",pm_dfs_buffer[i]);
-  printf(" %x,%d ",*replyax,retlength);
-  if (retlength!=0xFFFFu) return (retlength-60);
+  printf(" %x,%d ",*replyax,length);
+  if (length!=0xFFFFu) return (length-60);
 
   return(0xFFFFu); /* return error */
 }
@@ -283,7 +287,7 @@ void process2f(void) {
   unsigned char far *answer;
   unsigned char far *buff; /* pointer to the "query arguments" part of pm_dfs_buffer */
   unsigned char subfunction;
-  unsigned short ax;  /* used to collect the resulting value of AX */
+  unsigned short far *ax;  /* used to collect the resulting value of AX */
   buff = pm_dfs_buffer + 60;
   answer = buff;
 
@@ -325,8 +329,8 @@ void process2f(void) {
       copybytes(buff, glob_sdaptr->fn1 + 2, i);
       /* send query providing fn1 */
       if (sendquery(subfunction, glob_reqdrv, i, &ax) == 0) {
-        glob_intregs.w.ax = ax;
-        if (ax != 0) glob_intregs.w.flags |= INTR_CF;
+        glob_intregs.w.ax = *ax;
+        if (*ax != 0) glob_intregs.w.flags |= INTR_CF;
       } else {
         FAILFLAG(2);
       }
@@ -348,8 +352,8 @@ void process2f(void) {
       copybytes(buff, glob_sdaptr->fn1 + 2, i);
       /* send query providing fn1 */
       if (sendquery(AL_CHDIR, glob_reqdrv, i, &ax) == 0) {
-        glob_intregs.w.ax = ax;
-        if (ax != 0) glob_intregs.w.flags |= INTR_CF;
+        glob_intregs.w.ax = *ax;
+        if (*ax != 0) glob_intregs.w.flags |= INTR_CF;
       } else {
         FAILFLAG(3); /* "path not found" */
       }
@@ -364,7 +368,7 @@ void process2f(void) {
       if (sftptr->handle_count > 0) sftptr->handle_count--;
       ((unsigned short *)buff)[0] = sftptr->start_sector;
       if (sendquery(AL_CLSFIL, glob_reqdrv, 2, &ax) == 0) {
-        if (ax != 0) FAILFLAG(ax);
+        if (*ax != 0) FAILFLAG(*ax);
       }
       }
       break;
@@ -401,8 +405,8 @@ void process2f(void) {
         if (len == 0xFFFFu) { /* network error */
           FAILFLAG(2);
           break;
-        } else if (ax != 0) { /* backend error */
-          FAILFLAG(ax);
+        } else if (*ax != 0) { /* backend error */
+          FAILFLAG(*ax);
           break;
         } else { /* success */
           copybytes(glob_sdaptr->curr_dta + totreadlen, answer, len);
@@ -443,8 +447,8 @@ void process2f(void) {
         if (len == 0xFFFFu) { /* network error */
           FAILFLAG(2);
           break;
-        } else if ((ax != 0) || (len != 2)) { /* backend error */
-          FAILFLAG(ax);
+        } else if ((*ax != 0) || (len != 2)) { /* backend error */
+          FAILFLAG(*ax);
           break;
         } else { /* success - write amount of bytes written into CX and update SFT */
           len = ((unsigned short *)answer)[0];
@@ -477,7 +481,7 @@ void process2f(void) {
       break;
     case AL_DISKSPACE: /*** 0Ch: get disk information ***********************/
       if (sendquery(AL_DISKSPACE, glob_reqdrv, 0, &ax) == 6) {
-        glob_intregs.w.ax = ax; /* sectors per cluster */
+        glob_intregs.w.ax = *ax; /* sectors per cluster */
         glob_intregs.w.bx = ((unsigned short *)answer)[0]; /* total clusters */
         glob_intregs.w.cx = ((unsigned short *)answer)[1]; /* bytes per sector */
         glob_intregs.w.dx = ((unsigned short *)answer)[2]; /* num of available clusters */
@@ -505,8 +509,8 @@ void process2f(void) {
       i = sendquery(AL_SETATTR, glob_reqdrv, i - 1, &ax);
       if (i != 0) {
         FAILFLAG(2);
-      } else if (ax != 0) {
-        FAILFLAG(ax);
+      } else if (*ax != 0) {
+        FAILFLAG(*ax);
       }
       break;
     case AL_GETATTR: /*** 0Fh: GETATTR **************************************/
@@ -520,8 +524,8 @@ void process2f(void) {
       i = sendquery(AL_GETATTR, glob_reqdrv, i, &ax);
       if ((unsigned short)i == 0xffffu) {
         FAILFLAG(2);
-      } else if ((i != 9) || (ax != 0)) {
-        FAILFLAG(ax);
+      } else if ((i != 9) || (*ax != 0)) {
+        FAILFLAG(*ax);
       } else { /* all good */
         /* CX = timestamp
          * DX = datestamp
@@ -564,8 +568,8 @@ void process2f(void) {
       i = sendquery(AL_RENAME, glob_reqdrv, 1 + buff[0] + i, &ax);
       if (i != 0) {
         FAILFLAG(2);
-      } else if (ax != 0) {
-        FAILFLAG(ax);
+      } else if (*ax != 0) {
+        FAILFLAG(*ax);
       }
       break;
     case AL_DELETE: /*** 13h: DELETE ****************************************/
@@ -584,8 +588,8 @@ void process2f(void) {
       i = sendquery(AL_DELETE, glob_reqdrv, i, &ax);
       if ((unsigned short)i == 0xffffu) {
         FAILFLAG(2);
-      } else if ((i != 0) || (ax != 0)) {
-        FAILFLAG(ax);
+      } else if ((i != 0) || (*ax != 0)) {
+        FAILFLAG(*ax);
       }
       break;
     case AL_OPEN: /*** 16h: OPEN ********************************************/
@@ -609,8 +613,8 @@ void process2f(void) {
       i = sendquery(subfunction, glob_reqdrv, i + 6, &ax);
       if ((unsigned short)i == 0xffffu) {
         FAILFLAG(2);
-      } else if ((i != 25) || (ax != 0)) {
-        FAILFLAG(ax);
+      } else if ((i != 25) || (*ax != 0)) {
+        FAILFLAG(*ax);
       } else {
         /* ES:DI contains an uninitialized SFT */
         struct sftstruct far *sftptr = MK_FP(glob_intregs.x.es, glob_intregs.x.di);
@@ -693,8 +697,8 @@ void process2f(void) {
           FAILFLAG(18); /* a failed findnext returns error 18 (no more files) */
         }
         break;
-      } else if ((ax != 0) || (i != 24)) {
-        FAILFLAG(ax);
+      } else if ((*ax != 0) || (i != 24)) {
+        FAILFLAG(*ax);
         break;
       }
       /* fill in the directory entry 'found_file' (32 bytes)
@@ -752,8 +756,8 @@ void process2f(void) {
       i = sendquery(AL_SKFMEND, glob_reqdrv, 6, &ax);
       if (i == 0xffffu) {
         FAILFLAG(2);
-      } else if ((ax != 0) || (i != 4)) {
-        FAILFLAG(ax);
+      } else if ((*ax != 0) || (i != 4)) {
+        FAILFLAG(*ax);
       } else { /* put new position into DX:AX */
         glob_intregs.w.ax = ((unsigned short *)answer)[0];
         glob_intregs.w.dx = ((unsigned short *)answer)[1];
@@ -1705,6 +1709,47 @@ int main(int argc, char **argv) {
    pm_dfs_buffer=(unsigned char far *) MK_FP(BIOS_Segment,DFS_Buff_Offs);
 
    printf("Buffer %p first bytes: %x, %x, %x\r\n",pm_dfs_buffer,pm_dfs_buffer[0], pm_dfs_buffer[1], pm_dfs_buffer[2]);
+
+ #else // No PICOMEM
+  /* init the packet driver interface */
+  glob_data.pktint = 0;
+  if (args.pktint == 0) { /* detect first packet driver within int 60h..80h */
+    for (i = 0x60; i <= 0x80; i++) {
+      if (pktdrv_init(i, args.flags & ARGFL_NOCKSUM) == 0) break;
+    }
+  } else { /* use the pktdrvr interrupt passed through command line */
+    pktdrv_init(args.pktint, args.flags & ARGFL_NOCKSUM);
+  }
+  /* has it succeeded? */
+  if (glob_data.pktint == 0) {
+    #include "msg\\pktdfail.c"
+    freeseg(newdataseg);
+    return(1);
+  }
+  pktdrv_getaddr(GLOB_LMAC);
+ #endif
+
+
+ #if PICOMEM // Should send a "Packet" to verify that the Disk driver is there
+
+
+ #else // No PICOMEM
+  /* should I auto-discover the server? */
+  if ((args.flags & ARGFL_AUTO) != 0) {
+    unsigned short *ax;
+    unsigned char *answer;
+    /* set (temporarily) glob_rmac to broadcast */
+    for (i = 0; i < 6; i++) GLOB_RMAC[i] = 0xff;
+    for (i = 0; glob_data.ldrv[i] == 0xff; i++); /* find first mapped disk */
+    /* send a discovery frame that will update glob_rmac */
+    if (sendquery(AL_DISKSPACE, i, 0, &answer, &ax) != 6) {
+      #include "msg\\nosrvfnd.c"
+      pktdrv_free(glob_pktdrv_pktcall); /* free the pkt drv and quit */
+      freeseg(newdataseg);
+      return(1);
+    }
+  }
+#endif  
 
 /*
 #if PICOMEM // Test : Quit
