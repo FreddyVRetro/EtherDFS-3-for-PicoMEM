@@ -65,7 +65,6 @@ printf("%u clusters = ", dpb->highest_cluster - 1);
 printf("%lu bytes\n\n",bytes_per_clust * (dpb->highest_cluster - 1));
 }
 
-
 main()
 {
 DPB far *dpb;

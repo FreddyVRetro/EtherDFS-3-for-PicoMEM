@@ -1,11 +1,6 @@
 pm_s_lib.h(114): Warning! W200: 'r' has been referenced but never assigned a value
 pm_s_lib.h(142): Warning! W200: 'r' has been referenced but never assigned a value
-ETHERDFS.C(264): Warning! W102: Type mismatch (warning)
-ETHERDFS.C(264): Note! I2003: source conversion type is 'unsigned long '
-ETHERDFS.C(264): Note! I2004: target conversion type is 'unsigned short __far *'
-ETHERDFS.C(244): Warning! W202: Symbol 'b' has been defined, but not referenced
-ETHERDFS.C(243): Warning! W202: Symbol 'a' has been defined, but not referenced
-ETHERDFS.C(1784): Warning! W202: Symbol 'z' has been defined, but not referenced
+ETHERDFS.C(1782): Warning! W202: Symbol 'z' has been defined, but not referenced
 ETHERDFS.C(106): Warning! W202: Symbol 'bsdsum' has been defined, but not referenced
-ETHERDFS.C(1071): Warning! W202: Symbol 'hexpair2int' has been defined, but not referenced
-ETHERDFS.C(1218): Warning! W202: Symbol 'byte2hex' has been defined, but not referenced
+ETHERDFS.C(1216): Warning! W202: Symbol 'byte2hex' has been defined, but not referenced
+ETHERDFS.C(1069): Warning! W202: Symbol 'hexpair2int' has been defined, but not referenced

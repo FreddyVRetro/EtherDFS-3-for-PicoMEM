@@ -237,12 +237,9 @@ regs.h.ah
 
 /* sends query out, as found in pm_dfs_buffer, and awaits for an answer.
  * this function returns the length of replyptr, or 0xFFFF on error. */
-static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned short far **replyax) {
-  unsigned short length;
-  unsigned short i;
-  unsigned short a;
-  unsigned short b;
-
+static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned short far *replyax) {
+  unsigned short retlength;
+  //unsigned short i;
 
   /* resolve remote drive - no need to validate it, it has been validated
    * already by inthandler() */
@@ -262,12 +259,12 @@ static unsigned short sendquery(unsigned char query, unsigned char drive, unsign
 
 // Add code to receive answer
   *replyax  = ((unsigned short far *)pm_dfs_buffer)[29];   // AX answered at 29x2
-  //length = ((unsigned short far *)pm_dfs_buffer)[26];    //
-  length = pm_dfs_buffer[52]+pm_dfs_buffer[53]<<8;         //
+  retlength = ((unsigned short far *)pm_dfs_buffer)[26];    //
+  //length = pm_dfs_buffer[52]+pm_dfs_buffer[53]<<8;         //
 
-  for (i=48;i<60;i++) printf("%d;",pm_dfs_buffer[i]);
-  printf(" %x,%d ",*replyax,length);
-  if (length!=0xFFFFu) return (length-60);
+  //for (i=48;i<60;i++) printf("%d;",pm_dfs_buffer[i]);
+  //printf(" %x,%d ",*replyax,retlength);
+  if (retlength!=0xFFFFu) return (retlength-60);
 
   return(0xFFFFu); /* return error */
 }
@@ -287,7 +284,7 @@ void process2f(void) {
   unsigned char far *answer;
   unsigned char far *buff; /* pointer to the "query arguments" part of pm_dfs_buffer */
   unsigned char subfunction;
-  unsigned short far *ax;  /* used to collect the resulting value of AX */
+  unsigned short ax;  /* used to collect the resulting value of AX */
   buff = pm_dfs_buffer + 60;
   answer = buff;
 
@@ -329,8 +326,8 @@ void process2f(void) {
       copybytes(buff, glob_sdaptr->fn1 + 2, i);
       /* send query providing fn1 */
       if (sendquery(subfunction, glob_reqdrv, i, &ax) == 0) {
-        glob_intregs.w.ax = *ax;
-        if (*ax != 0) glob_intregs.w.flags |= INTR_CF;
+        glob_intregs.w.ax = ax;
+        if (ax != 0) glob_intregs.w.flags |= INTR_CF;
       } else {
         FAILFLAG(2);
       }
@@ -352,9 +349,10 @@ void process2f(void) {
       copybytes(buff, glob_sdaptr->fn1 + 2, i);
       /* send query providing fn1 */
       if (sendquery(AL_CHDIR, glob_reqdrv, i, &ax) == 0) {
-        glob_intregs.w.ax = *ax;
-        if (*ax != 0) glob_intregs.w.flags |= INTR_CF;
+        glob_intregs.w.ax = ax;
+        if (ax != 0) glob_intregs.w.flags |= INTR_CF;
       } else {
+       // printf("c%d,%d ",ax,i);
         FAILFLAG(3); /* "path not found" */
       }
       break;
@@ -366,9 +364,9 @@ void process2f(void) {
       {
       struct sftstruct far *sftptr = MK_FP(glob_intregs.x.es, glob_intregs.x.di);
       if (sftptr->handle_count > 0) sftptr->handle_count--;
-      ((unsigned short *)buff)[0] = sftptr->start_sector;
+      ((unsigned short far *)buff)[0] = sftptr->start_sector;
       if (sendquery(AL_CLSFIL, glob_reqdrv, 2, &ax) == 0) {
-        if (*ax != 0) FAILFLAG(*ax);
+        if (ax != 0) FAILFLAG(ax);
       }
       }
       break;
@@ -398,15 +396,15 @@ void process2f(void) {
           chunklen = FRAMESIZE - 60;
         }
         /* query is OOOOSSLL (offset, start sector, lenght to read) */
-        ((unsigned long *)buff)[0] = sftptr->file_pos + totreadlen;
-        ((unsigned short *)buff)[2] = sftptr->start_sector;
-        ((unsigned short *)buff)[3] = chunklen;
+        ((unsigned long far *)buff)[0] = sftptr->file_pos + totreadlen;
+        ((unsigned short far *)buff)[2] = sftptr->start_sector;
+        ((unsigned short far *)buff)[3] = chunklen;
         len = sendquery(AL_READFIL, glob_reqdrv, 8, &ax);
         if (len == 0xFFFFu) { /* network error */
           FAILFLAG(2);
           break;
-        } else if (*ax != 0) { /* backend error */
-          FAILFLAG(*ax);
+        } else if (ax != 0) { /* backend error */
+          FAILFLAG(ax);
           break;
         } else { /* success */
           copybytes(glob_sdaptr->curr_dta + totreadlen, answer, len);
@@ -440,18 +438,18 @@ void process2f(void) {
         chunklen = bytesleft;
         if (chunklen > FRAMESIZE - 66) chunklen = FRAMESIZE - 66;
         /* query is OOOOSS (file offset, start sector/fileid) */
-        ((unsigned long *)buff)[0] = sftptr->file_pos;
-        ((unsigned short *)buff)[2] = sftptr->start_sector;
+        ((unsigned long far *)buff)[0] = sftptr->file_pos;
+        ((unsigned short far *)buff)[2] = sftptr->start_sector;
         copybytes(buff + 6, glob_sdaptr->curr_dta + written, chunklen);
         len = sendquery(AL_WRITEFIL, glob_reqdrv, chunklen + 6, &ax);
         if (len == 0xFFFFu) { /* network error */
           FAILFLAG(2);
           break;
-        } else if ((*ax != 0) || (len != 2)) { /* backend error */
-          FAILFLAG(*ax);
+        } else if ((ax != 0) || (len != 2)) { /* backend error */
+          FAILFLAG(ax);
           break;
         } else { /* success - write amount of bytes written into CX and update SFT */
-          len = ((unsigned short *)answer)[0];
+          len = ((unsigned short far *)answer)[0];
           written += len;
           bytesleft -= len;
           glob_intregs.x.cx = written;
@@ -465,8 +463,8 @@ void process2f(void) {
     case AL_LOCKFIL: /*** 0Ah: LOCKFIL **************************************/
       {
       struct sftstruct far *sftptr = MK_FP(glob_intregs.x.es, glob_intregs.x.di);
-      ((unsigned short *)buff)[0] = glob_intregs.x.cx;
-      ((unsigned short *)buff)[1] = sftptr->start_sector;
+      ((unsigned short far *)buff)[0] = glob_intregs.x.cx;
+      ((unsigned short far *)buff)[1] = sftptr->start_sector;
       if (glob_intregs.h.bl > 1) FAILFLAG(2); /* BL should be either 0 (lock) or 1 (unlock) */
       /* copy 8*CX bytes from DS:DX to buff+4 (parameters block) */
       copybytes(buff + 4, MK_FP(glob_intregs.x.ds, glob_intregs.x.dx), glob_intregs.x.cx << 3);
@@ -481,10 +479,10 @@ void process2f(void) {
       break;
     case AL_DISKSPACE: /*** 0Ch: get disk information ***********************/
       if (sendquery(AL_DISKSPACE, glob_reqdrv, 0, &ax) == 6) {
-        glob_intregs.w.ax = *ax; /* sectors per cluster */
-        glob_intregs.w.bx = ((unsigned short *)answer)[0]; /* total clusters */
-        glob_intregs.w.cx = ((unsigned short *)answer)[1]; /* bytes per sector */
-        glob_intregs.w.dx = ((unsigned short *)answer)[2]; /* num of available clusters */
+        glob_intregs.w.ax = ax; /* sectors per cluster */
+        glob_intregs.w.bx = ((unsigned short far *)answer)[0]; /* total clusters */
+        glob_intregs.w.cx = ((unsigned short far *)answer)[1]; /* bytes per sector */
+        glob_intregs.w.dx = ((unsigned short far *)answer)[2]; /* num of available clusters */
       } else {
         FAILFLAG(2);
       }
@@ -509,8 +507,8 @@ void process2f(void) {
       i = sendquery(AL_SETATTR, glob_reqdrv, i - 1, &ax);
       if (i != 0) {
         FAILFLAG(2);
-      } else if (*ax != 0) {
-        FAILFLAG(*ax);
+      } else if (ax != 0) {
+        FAILFLAG(ax);
       }
       break;
     case AL_GETATTR: /*** 0Fh: GETATTR **************************************/
@@ -524,8 +522,8 @@ void process2f(void) {
       i = sendquery(AL_GETATTR, glob_reqdrv, i, &ax);
       if ((unsigned short)i == 0xffffu) {
         FAILFLAG(2);
-      } else if ((i != 9) || (*ax != 0)) {
-        FAILFLAG(*ax);
+      } else if ((i != 9) || (ax != 0)) {
+        FAILFLAG(ax);
       } else { /* all good */
         /* CX = timestamp
          * DX = datestamp
@@ -533,10 +531,10 @@ void process2f(void) {
          * AX = attr
          * NOTE: Undocumented DOS talks only about setting AX, no fsize, time
          *       and date, these are documented in RBIL and used by SHSUCDX */
-        glob_intregs.w.cx = ((unsigned short *)answer)[0]; /* time */
-        glob_intregs.w.dx = ((unsigned short *)answer)[1]; /* date */
-        glob_intregs.w.bx = ((unsigned short *)answer)[3]; /* fsize hi word */
-        glob_intregs.w.di = ((unsigned short *)answer)[2]; /* fsize lo word */
+        glob_intregs.w.cx = ((unsigned short far *)answer)[0]; /* time */
+        glob_intregs.w.dx = ((unsigned short far *)answer)[1]; /* date */
+        glob_intregs.w.bx = ((unsigned short far *)answer)[3]; /* fsize hi word */
+        glob_intregs.w.di = ((unsigned short far *)answer)[2]; /* fsize lo word */
         glob_intregs.w.ax = answer[8];                     /* file attribs */
       }
       break;
@@ -568,8 +566,8 @@ void process2f(void) {
       i = sendquery(AL_RENAME, glob_reqdrv, 1 + buff[0] + i, &ax);
       if (i != 0) {
         FAILFLAG(2);
-      } else if (*ax != 0) {
-        FAILFLAG(*ax);
+      } else if (ax != 0) {
+        FAILFLAG(ax);
       }
       break;
     case AL_DELETE: /*** 13h: DELETE ****************************************/
@@ -588,8 +586,8 @@ void process2f(void) {
       i = sendquery(AL_DELETE, glob_reqdrv, i, &ax);
       if ((unsigned short)i == 0xffffu) {
         FAILFLAG(2);
-      } else if ((i != 0) || (*ax != 0)) {
-        FAILFLAG(*ax);
+      } else if ((i != 0) || (ax != 0)) {
+        FAILFLAG(ax);
       }
       break;
     case AL_OPEN: /*** 16h: OPEN ********************************************/
@@ -606,15 +604,15 @@ void process2f(void) {
       }
       i -= 2;
       /* prepare and send query (SSCCMMfff...) */
-      ((unsigned short *)buff)[0] = glob_reqstkword; /* WORD from the stack */
-      /* ((unsigned short *)buff)[1] = glob_sdaptr->spop_act;  */ /* action code (SPOP only) */
-      /* ((unsigned short *)buff)[2] = glob_sdaptr->spop_mode; */ /* open mode (SPOP only) */
+      ((unsigned short far *)buff)[0] = glob_reqstkword; /* WORD from the stack */
+      /* ((unsigned short far *)buff)[1] = glob_sdaptr->spop_act;  */ /* action code (SPOP only) */
+      /* ((unsigned short far *)buff)[2] = glob_sdaptr->spop_mode; */ /* open mode (SPOP only) */
       copybytes(buff + 6, glob_sdaptr->fn1 + 2, i);
       i = sendquery(subfunction, glob_reqdrv, i + 6, &ax);
       if ((unsigned short)i == 0xffffu) {
         FAILFLAG(2);
-      } else if ((i != 25) || (*ax != 0)) {
-        FAILFLAG(*ax);
+      } else if ((i != 25) || (ax != 0)) {
+        FAILFLAG(ax);
       } else {
         /* ES:DI contains an uninitialized SFT */
         struct sftstruct far *sftptr = MK_FP(glob_intregs.x.es, glob_intregs.x.di);
@@ -631,9 +629,9 @@ void process2f(void) {
         sftptr->file_attr = answer[0];
         sftptr->dev_info_word = 0x8040 | glob_reqdrv; /* mark device as network & unwritten drive */
         sftptr->dev_drvr_ptr = NULL;
-        sftptr->start_sector = ((unsigned short *)answer)[10];
-        sftptr->file_time = ((unsigned long *)answer)[3];
-        sftptr->file_size = ((unsigned long *)answer)[4];
+        sftptr->start_sector = ((unsigned short far *)answer)[10];
+        sftptr->file_time = ((unsigned long far *)answer)[3];
+        sftptr->file_size = ((unsigned long far *)answer)[4];
         sftptr->file_pos = 0;
         sftptr->open_mode &= 0xff00u;
         sftptr->open_mode |= answer[24];
@@ -681,8 +679,8 @@ void process2f(void) {
         i--; /* adjust i because its one too much otherwise */
       } else { /* FindNext needs to fetch search arguments from DTA (es:di) */
         dta = MK_FP(glob_intregs.x.es, glob_intregs.x.di);
-        ((unsigned short *)buff)[0] = dta->par_clstr;
-        ((unsigned short *)buff)[1] = dta->dir_entry;
+        ((unsigned short far *)buff)[0] = dta->par_clstr;
+        ((unsigned short far *)buff)[1] = dta->dir_entry;
         buff[4] = dta->srch_attr;
         /* copy search template to buff */
         for (i = 0; i < 11; i++) buff[i+5] = dta->srch_tmpl[i];
@@ -690,6 +688,8 @@ void process2f(void) {
       }
       /* send query to remote peer and wait for answer */
       i = sendquery(subfunction, glob_reqdrv, i, &ax);
+    //  printf("f%d,%d ",ax,i);
+
       if (i == 0xffffu) {
         if (subfunction == AL_FINDFIRST) {
           FAILFLAG(2); /* a failed findfirst returns error 2 (file not found) */
@@ -697,8 +697,8 @@ void process2f(void) {
           FAILFLAG(18); /* a failed findnext returns error 18 (no more files) */
         }
         break;
-      } else if ((*ax != 0) || (i != 24)) {
-        FAILFLAG(*ax);
+      } else if ((ax != 0) || (i != 24)) {
+        FAILFLAG(ax);
         break;
       }
       /* fill in the directory entry 'found_file' (32 bytes)
@@ -712,10 +712,10 @@ void process2f(void) {
        */
       copybytes(glob_sdaptr->found_file.fname, answer+1, 11); /* found file name */
       glob_sdaptr->found_file.fattr = answer[0]; /* found file attributes */
-      glob_sdaptr->found_file.time_lstupd = ((unsigned short *)answer)[6]; /* time (word) */
-      glob_sdaptr->found_file.date_lstupd = ((unsigned short *)answer)[7]; /* date (word) */
+      glob_sdaptr->found_file.time_lstupd = ((unsigned short far *)answer)[6]; /* time (word) */
+      glob_sdaptr->found_file.date_lstupd = ((unsigned short far *)answer)[7]; /* date (word) */
       glob_sdaptr->found_file.start_clstr = 0; /* start cluster (I don't care) */
-      glob_sdaptr->found_file.fsize = ((unsigned long *)answer)[4]; /* fsize (word) */
+      glob_sdaptr->found_file.fsize = ((unsigned long far *)answer)[4]; /* fsize (word) */
 
       /* put things into DTA so I can understand where I left should FindNext
        * be called - this shall be a valid FindFirst structure (21 bytes):
@@ -740,8 +740,8 @@ void process2f(void) {
         copybytes(dta->srch_tmpl, glob_sdaptr->fcb_fn1, 11);
         dta->srch_attr = glob_sdaptr->srch_attr;
       }
-      dta->par_clstr = ((unsigned short *)answer)[10];
-      dta->dir_entry = ((unsigned short *)answer)[11];
+      dta->par_clstr = ((unsigned short far *)answer)[10];
+      dta->dir_entry = ((unsigned short far *)answer)[11];
       /* then 32 bytes as in the found_file record */
       copybytes(dta + 0x15, &(glob_sdaptr->found_file), 32);
       }
@@ -749,18 +749,18 @@ void process2f(void) {
     case AL_SKFMEND: /*** 21h: SKFMEND **************************************/
     {
       struct sftstruct far *sftptr = MK_FP(glob_intregs.x.es, glob_intregs.x.di);
-      ((unsigned short *)buff)[0] = glob_intregs.x.dx;
-      ((unsigned short *)buff)[1] = glob_intregs.x.cx;
-      ((unsigned short *)buff)[2] = sftptr->start_sector;
+      ((unsigned short far *)buff)[0] = glob_intregs.x.dx;
+      ((unsigned short far *)buff)[1] = glob_intregs.x.cx;
+      ((unsigned short far *)buff)[2] = sftptr->start_sector;
       /* send query to remote peer and wait for answer */
       i = sendquery(AL_SKFMEND, glob_reqdrv, 6, &ax);
       if (i == 0xffffu) {
         FAILFLAG(2);
-      } else if ((*ax != 0) || (i != 4)) {
-        FAILFLAG(*ax);
+      } else if ((ax != 0) || (i != 4)) {
+        FAILFLAG(ax);
       } else { /* put new position into DX:AX */
-        glob_intregs.w.ax = ((unsigned short *)answer)[0];
-        glob_intregs.w.dx = ((unsigned short *)answer)[1];
+        glob_intregs.w.ax = ((unsigned short far *)answer)[0];
+        glob_intregs.w.dx = ((unsigned short far *)answer)[1];
       }
       break;
     }
@@ -1689,7 +1689,7 @@ int main(int argc, char **argv) {
      }
      else
      {
-      printf("PicoMEM detected Addr: %X Port: %X\r\n",BIOS_Segment,PM_Base);
+      printf("PMDFS : PicoMEM detected at Addr:%X,  Port:%X\r\n",BIOS_Segment,PM_Base);
      }
 
 //  unsigned char dfs_ver;
@@ -1702,13 +1702,13 @@ int main(int argc, char **argv) {
      }
      else
      {
-      printf("DFS support detected : %x\r\n",DFS_Buff_Offs);
+  //    printf("DFS support detected : %x\r\n",DFS_Buff_Offs);
      } 
   
    // Now the pm_dfs_buffer point to the shared RAM address
    pm_dfs_buffer=(unsigned char far *) MK_FP(BIOS_Segment,DFS_Buff_Offs);
 
-   printf("Buffer %p first bytes: %x, %x, %x\r\n",pm_dfs_buffer,pm_dfs_buffer[0], pm_dfs_buffer[1], pm_dfs_buffer[2]);
+   //("Buffer %p first bytes: %x, %x, %x\r\n",pm_dfs_buffer,pm_dfs_buffer[0], pm_dfs_buffer[1], pm_dfs_buffer[2]);
 
  #else // No PICOMEM
   /* init the packet driver interface */
