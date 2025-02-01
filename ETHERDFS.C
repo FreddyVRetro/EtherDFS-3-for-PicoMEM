@@ -260,12 +260,8 @@ static unsigned short sendquery(unsigned char query, unsigned char drive, unsign
 // Add code to receive answer
   *replyax  = ((unsigned short far *)pm_dfs_buffer)[29];   // AX answered at 29x2
   retlength = ((unsigned short far *)pm_dfs_buffer)[26];    //
-  //length = pm_dfs_buffer[52]+pm_dfs_buffer[53]<<8;         //
 
-  //for (i=48;i<60;i++) printf("%d;",pm_dfs_buffer[i]);
-  //printf(" %x,%d ",*replyax,retlength);
   if (retlength!=0xFFFFu) return (retlength-60);
-
   return(0xFFFFu); /* return error */
 }
 
@@ -399,6 +395,8 @@ void process2f(void) {
         ((unsigned long far *)buff)[0] = sftptr->file_pos + totreadlen;
         ((unsigned short far *)buff)[2] = sftptr->start_sector;
         ((unsigned short far *)buff)[3] = chunklen;
+        ((unsigned short far *)buff)[4] = glob_intregs.x.cx;  //"Debug" Send total length to read
+        ((unsigned short far *)buff)[5] = totreadlen;         //"Debug" Send remaining bytes to read
         len = sendquery(AL_READFIL, glob_reqdrv, 8, &ax);
         if (len == 0xFFFFu) { /* network error */
           FAILFLAG(2);
