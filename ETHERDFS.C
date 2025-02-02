@@ -69,6 +69,13 @@
 
 /* copies l bytes from *s to *d */
 static void copybytes(void far *d, void far *s, unsigned int l) {
+
+  if (disp) 
+             {
+              printf("C%04x:%04x ",FP_SEG(s),FP_OFF(s));
+              printf(">%04x:%04x, l%d ",FP_SEG(d),FP_OFF(d),l);
+             } 
+
   while (l != 0) {
     l--;
     *(unsigned char far *)d = *(unsigned char far *)s;
@@ -283,7 +290,8 @@ void process2f(void) {
   unsigned short ax;  /* used to collect the resulting value of AX */
   buff = pm_dfs_buffer + 60;
   answer = buff;
-
+  disp=false;
+  
   /* DEBUG output (RED) */
 #if DEBUGLEVEL > 0
   dbg_xpos &= 511;
@@ -375,6 +383,8 @@ void process2f(void) {
         /* SDA DTA = read buffer */
       struct sftstruct far *sftptr = MK_FP(glob_intregs.x.es, glob_intregs.x.di);
       unsigned short totreadlen;
+      unsigned char far *dest_ptr;
+
       /* is the file open for write-only? */
       if (sftptr->open_mode & 1) {
         FAILFLAG(5); /* "access denied" */
@@ -383,6 +393,7 @@ void process2f(void) {
       /* return immediately if the caller wants to read 0 bytes */
       if (glob_intregs.x.cx == 0) break;
       /* do multiple read operations so chunks can fit in my eth frames */
+      //printf("%d",glob_intregs.x.cx);
       totreadlen = 0;
       for (;;) {
         int chunklen, len;
@@ -398,6 +409,7 @@ void process2f(void) {
         ((unsigned short far *)buff)[4] = glob_intregs.x.cx;  //"Debug" Send total length to read
         ((unsigned short far *)buff)[5] = totreadlen;         //"Debug" Send remaining bytes to read
         len = sendquery(AL_READFIL, glob_reqdrv, 8, &ax);
+      //  if (len!=26) printf(".");
         if (len == 0xFFFFu) { /* network error */
           FAILFLAG(2);
           break;
@@ -405,15 +417,31 @@ void process2f(void) {
           FAILFLAG(ax);
           break;
         } else { /* success */
+
+   /*       if (len!=26) 
+             {
+              printf("C%04x:%04x ",FP_SEG(answer),FP_OFF(answer));
+              printf(">%04x:%04x, l%d ",FP_SEG(glob_sdaptr->curr_dta),FP_OFF(glob_sdaptr->curr_dta)+totreadlen,len);
+             } */
+          //printf("C%d",totreadlen);
+          if (len!=26) disp=true;
+             else disp=false;
           copybytes(glob_sdaptr->curr_dta + totreadlen, answer, len);
+          if (disp) printf("Ok");
           totreadlen += len;
+  //        if (totreadlen!=26) if (totreadlen == glob_intregs.x.cx) printf("End %d",totreadlen);
           if ((len < chunklen) || (totreadlen == glob_intregs.x.cx)) { /* EOF - update SFT and break out */
+  /*        if (totreadlen!=26) 
+             {
+              printf("cx %d totreadlen %d",glob_intregs.x.cx,totreadlen);
+             } */
             sftptr->file_pos += totreadlen;
             glob_intregs.x.cx = totreadlen;
             break;
           }
         }
-      }
+      }     //End for 
+      //printf("%d-",totreadlen);
       }
       break;
     case AL_WRITEFIL: /*** 09h: WRITEFIL ************************************/

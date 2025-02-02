@@ -81,6 +81,8 @@ static union INTPACK glob_intregs;
 static unsigned short PM_Base=0;          // PicoMEM I/O Base address (0 if not detected)
 static unsigned short BIOS_Segment =0;     // PicoMEM BIOS segment (Can be 0 if not detected)
 static unsigned short DFS_Buff_Offs=0;    // PicoMEM DFS Offset
+
+unsigned char disp;
 #endif
 
 #endif

@@ -15,6 +15,7 @@
         "OTHERTSR.C": "cpp",
         "DRVACTIV.C": "cpp",
         "UNSUPDOS.C": "cpp",
-        "INSTCHK.C": "cpp"
+        "INSTCHK.C": "cpp",
+        "DFSNOTDE.C": "cpp"
     }
 }
