@@ -82,4 +82,13 @@ static unsigned char glob_multiplexid;
 /* an INTPACK structure used to store registers as set when INT2F is called */
 static union INTPACK glob_intregs;
 
+#if PICOMEM  // Variables for pm_s_lib.h, must be placed in Data segment
+static unsigned short PM_Base=0;          // PicoMEM I/O Base address (0 if not detected)
+static unsigned short BIOS_Segment =0;     // PicoMEM BIOS segment (Can be 0 if not detected)
+static unsigned short DFS_Buff_Offs=0;    // PicoMEM DFS Offset
+
+unsigned char disp;
+
+#endif
+
 #endif

@@ -81,7 +81,7 @@ int main(void) {
     "         > will map the SD to D and USB to E\r\n"
     );
 
-  genmsg("msg\\unsupdos.c", "Wrong DOS version! This version of PMDFS requires MS-DOS 3.20 - 3.30.\r\n");
+  genmsg("msg\\unsupdos.c", "Wrong DOS version! This version of PMDFS requires MS-DOS 3.20 - 3.31.\r\n");
 
   genmsg("msg\\noredir.c", "Redirector installation has been forbidden either by DOS or another process.\r\n");
 
