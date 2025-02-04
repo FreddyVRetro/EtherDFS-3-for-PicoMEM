@@ -1,6 +1,4 @@
 pm_s_lib.h(114): Warning! W200: 'r' has been referenced but never assigned a value
 pm_s_lib.h(142): Warning! W200: 'r' has been referenced but never assigned a value
-ETHERDFS.C(1741): Warning! W202: Symbol 'z' has been defined, but not referenced
-ETHERDFS.C(110): Warning! W202: Symbol 'bsdsum' has been defined, but not referenced
-ETHERDFS.C(1220): Warning! W202: Symbol 'byte2hex' has been defined, but not referenced
-ETHERDFS.C(1073): Warning! W202: Symbol 'hexpair2int' has been defined, but not referenced
+ETHERDFS.C(392): Warning! W202: Symbol 'dest_ptr' has been defined, but not referenced
+ETHERDFS.C(1792): Warning! W202: Symbol 'z' has been defined, but not referenced

@@ -36,7 +36,7 @@
 
 #define PICOMEM 1
 #define DOSBOX 0
-#define USE_PRINTF 1
+#define USE_PRINTF 0
 
 #if PICOMEM
 
@@ -74,11 +74,13 @@
 /* copies l bytes from *s to *d */
 static void copybytes(void far *d, void far *s, unsigned int l) {
 
+#if USE_PRINTF
   if (disp) 
              {
               printf("C%04x:%04x ",FP_SEG(s),FP_OFF(s));
               printf(">%04x:%04x, l%d ",FP_SEG(d),FP_OFF(d),l);
              } 
+#endif
 
   while (l != 0) {
     l--;
@@ -112,7 +114,7 @@ static int len_if_no_wildcards(char far *s) {
   }
 }
 
-//#if PICOMEM == 0 // Not used fonctions (Network)
+#if PICOMEM == 0 // Not used fonctions (Network)
 /* computes a BSD checksum of l bytes at dataptr location */
 static unsigned short bsdsum(unsigned char *dataptr, unsigned short l) {
   unsigned short cksum = 0;
@@ -132,7 +134,7 @@ static unsigned short bsdsum(unsigned char *dataptr, unsigned short l) {
   }
   return(cksum);
 }
-//#endif
+#endif
 
 /* translates a drive letter (either upper- or lower-case) into a number (A=0,
  * B=1, C=2, etc) */
@@ -246,7 +248,7 @@ regs.h.al
 regs.h.ah
 */
 
-/* sends query out, as found in pm_dfs_buffer, and awaits for an answer.
+/* sends query out, as found in glob_pm_dfs_buffer, and awaits for an answer.
  * this function returns the length of replyptr, or 0xFFFF on error. */
 static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned short far *replyax) {
   unsigned short retlength;
@@ -258,19 +260,19 @@ static unsigned short sendquery(unsigned char query, unsigned char drive, unsign
 
   bufflen += 60;
   /* if query too long then quit */
-  //if (bufflen > sizeof(pm_dfs_buffer)) return(0);
+  //if (bufflen > sizeof(glob_pm_dfs_buffer)) return(0);
 
-  ((unsigned short far *)pm_dfs_buffer)[26] = bufflen; /* [52] < total frame len  */
-  //pm_dfs_buffer[57] = seq;                       /* seq number              */
-  pm_dfs_buffer[58] = drive;                       /* [58] < drive number     */
-  pm_dfs_buffer[59] = query;                       /* [59] < AL value (query) */
+  ((unsigned short far *)glob_pm_dfs_buffer)[26] = bufflen; /* [52] < total frame len  */
+  //glob_pm_dfs_buffer[57] = seq;                       /* seq number              */
+  glob_pm_dfs_buffer[58] = drive;                       /* [58] < drive number     */
+  glob_pm_dfs_buffer[59] = query;                       /* [59] < AL value (query) */
 
   pm_io_cmd(CMD_EthDFS_Send,bufflen);   // Send the' Command
   pm_wait_cmd_end();                    // Wait for the answer
 
 // Add code to receive answer
-  *replyax  = ((unsigned short far *)pm_dfs_buffer)[29];   // AX answered at 29x2
-  retlength = ((unsigned short far *)pm_dfs_buffer)[26];    //
+  *replyax  = ((unsigned short far *)glob_pm_dfs_buffer)[29];   // AX answered at 29x2
+  retlength = ((unsigned short far *)glob_pm_dfs_buffer)[26];    //
 
   if (retlength!=0xFFFFu) return (retlength-60);
   return(0xFFFFu); /* return error */
@@ -289,10 +291,10 @@ void process2f(void) {
 #endif
   short i;
   unsigned char far *answer;
-  unsigned char far *buff; /* pointer to the "query arguments" part of pm_dfs_buffer */
+  unsigned char far *buff; /* pointer to the "query arguments" part of glob_pm_dfs_buffer */
   unsigned char subfunction;
   unsigned short ax;  /* used to collect the resulting value of AX */
-  buff = pm_dfs_buffer + 60;
+  buff = glob_pm_dfs_buffer + 60;
   answer = buff;
   disp=false;
   
@@ -422,23 +424,33 @@ void process2f(void) {
           break;
         } else { /* success */
 
-   /*       if (len!=26) 
+/*
+#if USE_PRINTF
+          if (len!=26) 
              {
               printf("C%04x:%04x ",FP_SEG(answer),FP_OFF(answer));
               printf(">%04x:%04x, l%d ",FP_SEG(glob_sdaptr->curr_dta),FP_OFF(glob_sdaptr->curr_dta)+totreadlen,len);
-             } */
+             } 
+#endif
+*/
           //printf("C%d",totreadlen);
           if (len!=26) disp=true;
              else disp=false;
           copybytes(glob_sdaptr->curr_dta + totreadlen, answer, len);
+#if USE_PRINTF
           if (disp) printf("Ok");
+#endif
           totreadlen += len;
   //        if (totreadlen!=26) if (totreadlen == glob_intregs.x.cx) printf("End %d",totreadlen);
           if ((len < chunklen) || (totreadlen == glob_intregs.x.cx)) { /* EOF - update SFT and break out */
-  /*        if (totreadlen!=26) 
+  /*        
+#if USE_PRINTF
+            if (totreadlen!=26) 
              {
               printf("cx %d totreadlen %d",glob_intregs.x.cx,totreadlen);
-             } */
+             }
+#endif
+              */
             sftptr->file_pos += totreadlen;
             glob_intregs.x.cx = totreadlen;
             break;
@@ -829,27 +841,27 @@ void __interrupt __far inthandler(union INTPACK r) {
      * frame - debugging ONLY! */
     /*
     mov ax, ss:[BP+20]
-    mov word ptr [pm_dfs_buffer+16], ax
+    mov word ptr [glob_pm_dfs_buffer+16], ax
     mov ax, ss:[BP+22]
-    mov word ptr [pm_dfs_buffer+18], ax
+    mov word ptr [glob_pm_dfs_buffer+18], ax
     mov ax, ss:[BP+24]
-    mov word ptr [pm_dfs_buffer+20], ax
+    mov word ptr [glob_pm_dfs_buffer+20], ax
     mov ax, ss:[BP+26]
-    mov word ptr [pm_dfs_buffer+22], ax
+    mov word ptr [glob_pm_dfs_buffer+22], ax
     mov ax, ss:[BP+28]
-    mov word ptr [pm_dfs_buffer+24], ax
+    mov word ptr [glob_pm_dfs_buffer+24], ax
     mov ax, ss:[BP+30]
-    mov word ptr [pm_dfs_buffer+26], ax
+    mov word ptr [glob_pm_dfs_buffer+26], ax
     mov ax, ss:[BP+32]
-    mov word ptr [pm_dfs_buffer+28], ax
+    mov word ptr [glob_pm_dfs_buffer+28], ax
     mov ax, ss:[BP+34]
-    mov word ptr [pm_dfs_buffer+30], ax
+    mov word ptr [glob_pm_dfs_buffer+30], ax
     mov ax, ss:[BP+36]
-    mov word ptr [pm_dfs_buffer+32], ax
+    mov word ptr [glob_pm_dfs_buffer+32], ax
     mov ax, ss:[BP+38]
-    mov word ptr [pm_dfs_buffer+34], ax
+    mov word ptr [glob_pm_dfs_buffer+34], ax
     mov ax, ss:[BP+40]
-    mov word ptr [pm_dfs_buffer+36], ax
+    mov word ptr [glob_pm_dfs_buffer+36], ax
     */
     /* restore AX */
     pop ax
@@ -1094,6 +1106,7 @@ static void zerobytes(void *obj, unsigned short l) {
   }
 }
 
+#if PICOMEM == 0
 /* expects a hex string of exactly two chars "XX" and returns its value, or -1
  * if invalid */
 static int hexpair2int(char *hx) {
@@ -1117,6 +1130,7 @@ static int hexpair2int(char *hx) {
   i |= h[1];
   return(i);
 }
+#endif
 
 #if PICOMEM == 0 // Not used fonctions (Network)
 /* translates an ASCII MAC address into a 6-bytes binary string */
@@ -1241,6 +1255,7 @@ static int parseargv(struct argstruct *args) {
   return(0);
 }
 
+#if PICOMEM == 0
 /* translates an unsigned byte into a 2-characters string containing its hex
  * representation. s needs to be at least 3 bytes long. */
 static void byte2hex(char *s, unsigned char b) {
@@ -1257,6 +1272,7 @@ static void byte2hex(char *s, unsigned char b) {
   s[1] = h[b & 15];
   s[2] = 0;
 }
+#endif
 
 /* allocates sz bytes of memory and returns the segment to allocated memory or
  * 0 on error. the allocation strategy is 'highest possible' (last fit) to
@@ -1689,6 +1705,11 @@ int main(int argc, char **argv) {
   // check if the PicoMEM BIOS is present.
   // It is mandatory as the data transfer use the RAM emulation
 
+#if USE_PRINTF
+//  PM_Base=123;
+//  printf("TOTO %d, %d",PM_Base, glob_oldstack_seg );
+#endif
+
   if (! pm_irq_detect())
      {
       #include "msg\\pmnotdet.c"
@@ -1709,8 +1730,8 @@ int main(int argc, char **argv) {
 //      printf("DFS support detected : %x\r\n",DFS_Buff_Offs);
      }
 
-   // Now the pm_dfs_buffer point to the shared RAM address
-   pm_dfs_buffer=(unsigned char far *) MK_FP(BIOS_Segment,DFS_Buff_Offs);
+   // Now the glob_pm_dfs_buffer point to the shared RAM address
+   glob_pm_dfs_buffer=(unsigned char far *) MK_FP(BIOS_Segment,DFS_Buff_Offs);
  #endif
 
  #if PICOMEM
