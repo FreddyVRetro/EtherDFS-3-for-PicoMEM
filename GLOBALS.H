@@ -39,11 +39,11 @@ static struct tsrshareddata {
 /*  0 */ unsigned short prev_2f_handler_seg; /* seg:off of the previous 2F handler */
 /*  2 */ unsigned short prev_2f_handler_off; /* (so I can call it for all queries  */
                                             /* that do not relate to my drive     */
-/*  4 */ unsigned short pspseg;    /* segment of the program's PSP block */
-/*  6 */ unsigned short pkthandle; /* handler returned by the packet driver */
-/*  8 */ unsigned char pktint;     /* software interrupt of the packet driver */
+/*  4 */ unsigned short pspseg;     /* segment of the program's PSP block */
+/*  6 */ unsigned short pkthandle;  /* handler returned by the packet driver */
+/*  8 */ unsigned char  pktint;     /* software interrupt of the packet driver */
 
-         unsigned char ldrv[26]; /* local to remote drives mappings (0=A:, 1=B, etc */
+         unsigned char ldrv[26];    /* local to remote drives mappings (0=A:, 1=B, etc */
 } glob_data;
 
 /* global variables related to packet driver management and handling frames */
@@ -51,14 +51,19 @@ static struct tsrshareddata {
 static unsigned char glob_pktdrv_recvbuff[FRAMESIZE];
 static signed short volatile glob_pktdrv_recvbufflen; /* length of the frame in buffer, 0 means "free", and neg value means "awaiting" */
 #endif
+
+static unsigned short PM_Base=0;          // PicoMEM I/O Base address (0 if not detected)
+static unsigned short BIOS_Segment =0;     // PicoMEM BIOS segment (Can be 0 if not detected)
+static unsigned short DFS_Buff_Offs=0;    // PicoMEM DFS Offset
+
 unsigned char far *pm_dfs_buffer; /* this not only is my send-frame buffer, but I also use it to store permanently lmac, rmac, ethertype and PROTOVER at proper places */
 #if PICOMEM == 0 // No need for packet receive IRQ
 static unsigned long glob_pktdrv_pktcall;     /* vector address of the pktdrv interrupt */
 #endif
 
 /* a few definitions for data that points to my sending buffer */
-#define GLOB_LMAC (pm_dfs_buffer + 6) /* local MAC address */
-#define GLOB_RMAC (pm_dfs_buffer)     /* remote MAC address */
+//#define GLOB_LMAC (pm_dfs_buffer + 6) /* local MAC address */
+//#define GLOB_RMAC (pm_dfs_buffer)     /* remote MAC address */
 
 static unsigned char glob_reqdrv;  /* the requested drive, set by the INT 2F *
                                     * handler and read by process2f()        */
@@ -76,11 +81,5 @@ static unsigned char glob_multiplexid;
 
 /* an INTPACK structure used to store registers as set when INT2F is called */
 static union INTPACK glob_intregs;
-
-#if PICOMEM  // Variables for pm_s_lib.h, must be placed in Data segment
-static unsigned short PM_Base=0;          // PicoMEM I/O Base address (0 if not detected)
-static unsigned short BIOS_Segment =0;     // PicoMEM BIOS segment (Can be 0 if not detected)
-static unsigned short DFS_Buff_Offs=0;    // PicoMEM DFS Offset
-#endif
 
 #endif

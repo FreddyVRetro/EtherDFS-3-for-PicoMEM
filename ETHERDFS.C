@@ -36,9 +36,10 @@
 
 #define PICOMEM 1
 #define DOSBOX 0
+#define USE_PRINTF 1
 
 #if PICOMEM
-#include <stdio.h>
+
 /* Access to simple PicoMEM fonctions, to detect and send command */
 #endif
 
@@ -61,6 +62,9 @@
 #pragma code_seg(BEGTEXT, CODE)
 
 #if PICOMEM
+#if USE_PRINTF
+#include <stdio.h>
+#endif
 /* Access to simple PicoMEM fonctions, to detect and send command */
 #include <stdbool.h>  /* Needed for compiler in C99 Mode*/
 #include "pm_s_lib.h"
@@ -1371,17 +1375,6 @@ int main(int argc, char **argv) {
   int i;
   unsigned short volatile newdataseg; /* 'volatile' just in case the compiler would try to optimize it out, since I set it through in-line assembly */
 
-/*
-   BIOS_Segment=0xD000;
-   DFS_Buff_Offs=0x0000;
-   pm_dfs_buffer=(unsigned char far *) MK_FP(BIOS_Segment,DFS_Buff_Offs);
-
-   pm_dfs_buffer[0]=0xAA;
-
-   printf("Buffer %p first bytes: %x, %x, %x\r\n",pm_dfs_buffer,pm_dfs_buffer[0], pm_dfs_buffer[1], pm_dfs_buffer[2]);
-   return(0);
-*/
-
   /* set all drive mappings as 'unused' */
   for (i = 0; i < 26; i++) glob_data.ldrv[i] = 0xff;
 
@@ -1602,19 +1595,6 @@ int main(int argc, char **argv) {
 #if (DOSBOX==0)
   /* if any of the to-be-mapped drives is already active, fail */
   for (i = 0; i < 26; i++) {
-/*    
-    if (i<10)
-    {
-    printf("Drive %c ",'A'+i);
-    printf("ldrv[i] %x\r\n",glob_data.ldrv[i]);
-    cds = getcds(i);
-    if (cds != NULL) 
-      {
- //      printf("Path: %s",&(cds->current_path[0]));
-       printf("Flags: %x\r\n",cds->flags);
-      }
-    }
-*/
     if (glob_data.ldrv[i] == 0xff) continue;
     cds = getcds(i);
     if (cds == NULL) {
@@ -1627,6 +1607,8 @@ int main(int argc, char **argv) {
     }
   }
 #endif
+
+
 
   /* allocate a new segment for all my internal needs, and use it right away
    * as DS */
@@ -1677,8 +1659,7 @@ int main(int argc, char **argv) {
   /* remember the SDA address (will be useful later) */
   glob_sdaptr = getsda();
 
- #if PICOMEM // No Packet driver, add PicoMEM detection code
-
+#if PICOMEM
   // check if the PicoMEM BIOS is present.
   // It is mandatory as the data transfer use the RAM emulation
 
@@ -1689,11 +1670,8 @@ int main(int argc, char **argv) {
      }
      else
      {
-      printf("PMDFS : PicoMEM detected at Addr:%X,  Port:%X\r\n",BIOS_Segment,PM_Base);
+//      printf("PMDFS : PicoMEM detected at Addr:%X,  Port:%X\r\n",BIOS_Segment,PM_Base);
      }
-
-//  unsigned char dfs_ver;
-//  dfs_ver=pm_dfs_detect();
 
   if (pm_dfs_detect()==0)
      {
@@ -1702,14 +1680,14 @@ int main(int argc, char **argv) {
      }
      else
      {
-  //    printf("DFS support detected : %x\r\n",DFS_Buff_Offs);
-     } 
-  
+//      printf("DFS support detected : %x\r\n",DFS_Buff_Offs);
+     }
+
    // Now the pm_dfs_buffer point to the shared RAM address
    pm_dfs_buffer=(unsigned char far *) MK_FP(BIOS_Segment,DFS_Buff_Offs);
+ #endif
 
-   //("Buffer %p first bytes: %x, %x, %x\r\n",pm_dfs_buffer,pm_dfs_buffer[0], pm_dfs_buffer[1], pm_dfs_buffer[2]);
-
+ #if PICOMEM
  #else // No PICOMEM
   /* init the packet driver interface */
   glob_data.pktint = 0;
@@ -1727,13 +1705,7 @@ int main(int argc, char **argv) {
     return(1);
   }
   pktdrv_getaddr(GLOB_LMAC);
- #endif
 
-
- #if PICOMEM // Should send a "Packet" to verify that the Disk driver is there
-
-
- #else // No PICOMEM
   /* should I auto-discover the server? */
   if ((args.flags & ARGFL_AUTO) != 0) {
     unsigned short *ax;
@@ -1749,16 +1721,7 @@ int main(int argc, char **argv) {
       return(1);
     }
   }
-#endif  
-
-/*
-#if PICOMEM // Test : Quit
-
-  freeseg(newdataseg);  // Free the new data segment allocation
-  return(1);
-
- #endif // PICOMEM
-*/
+ #endif
 
   /* set all drives as being 'network' drives (also add the PHYSICAL bit,
    * otherwise MS-DOS 6.0 will ignore the drive) */

@@ -1,0 +1,182 @@
+Open Watcom Linker Version 1.9
+Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
+Created on:       25/02/04 17:02:08
+Executable Image: etherdfs.exe
+creating a DOS executable
+
+
+                        +------------+
+                        |   Groups   |
+                        +------------+
+
+Group                           Address              Size
+=====                           =======              ====
+
+DGROUP                          02c0:0000            00000d90
+
+
+
+                        +--------------+
+                        |   Segments   |
+                        +--------------+
+
+Segment                Class          Group          Address         Size
+=======                =====          =====          =======         ====
+
+BEGTEXT                CODE           AUTO           0000:0000       00000e1b
+_TEXT                  CODE           AUTO           0000:0e20       00001de0
+FAR_DATA               FAR_DATA       AUTO           02c0:0000       00000000
+_NULL                  BEGDATA        DGROUP         02c0:0000       00000020
+_AFTERNULL             BEGDATA        DGROUP         02c2:0000       00000002
+_DATA                  DATA           DGROUP         02c2:0002       0000006e
+CONST                  DATA           DGROUP         02c9:0000       00000000
+CONST2                 DATA           DGROUP         02c9:0000       00000000
+XIB                    DATA           DGROUP         02c9:0000       00000000
+XI                     DATA           DGROUP         02c9:0000       00000006
+XIE                    DATA           DGROUP         02c9:0006       00000000
+YIB                    DATA           DGROUP         02c9:0006       00000000
+YI                     DATA           DGROUP         02c9:0006       00000006
+YIE                    DATA           DGROUP         02c9:000c       00000000
+STRINGS                DATA           DGROUP         02c9:000c       00000000
+DATA                   DATA           DGROUP         02c9:000c       00000000
+_BSS                   BSS            DGROUP         02c9:000c       000008f4
+STACK                  STACK          DGROUP         0359:0000       00000400
+
+
+                        +----------------+
+                        |   Memory Map   |
+                        +----------------+
+
+* = unreferenced symbol
++ = symbol only referenced locally
+
+Address        Symbol
+=======        ======
+
+Module: CHINT.OBJ(chainint)
+0000:0000      _mvchain_intr_
+Module: ETHERDFS.obj(C:\SRC_FV\ETHERD~1\ETHDFS83\ETHERDFS.C)
+0000:00ab+     pktdrv_recv_
+0000:028e+     process2f_
+0000:0bbc+     inthandler_
+0000:0e20+     begtextend_
+0000:1447      main_
+Module: C:\WATCOM/lib286/dos\clibs.lib(cstart)
+0000:0e17*     ___begtext
+02c0:0000*     __nullarea
+0000:20b2      _cstart_
+0000:2187*     _Not_Enough_Memory_
+0000:22b2      __exit_
+0000:22d1      __do_exit_with_msg__
+0000:2314      __GETDS
+Module: C:\WATCOM/lib286/dos\clibs.lib(cmodel)
+0000:231e      _small_code_
+0000:231e*     CodeModelMismatch
+Module: C:\WATCOM/lib286/dos\clibs.lib(argcv.c)
+02c0:097a      __argc
+02c0:097c      __argv
+02c0:097e      ___argc
+02c0:0980      ___argv
+Module: C:\WATCOM/lib286/dos\clibs.lib(xmsg.c)
+0000:231e*     __exit_with_msg_
+0000:2321      __fatal_runtime_error_
+Module: C:\WATCOM/lib286/dos\clibs.lib(cmain086.c)
+0000:233b      __CMain
+Module: C:\WATCOM/lib286/dos\clibs.lib(initrtns.c)
+0000:238c*     __FInitRtns
+0000:2390      __InitRtns
+0000:23eb*     __FFiniRtns
+0000:23ef      __FiniRtns
+Module: C:\WATCOM/lib286/dos\clibs.lib(crwdata)
+02c0:0054      __curbrk
+02c0:005c      __STACKLOW
+02c0:005e      __STACKTOP
+02c0:0060      __cbyte
+02c0:0062      __child
+02c0:0064      __no87
+02c0:0072      ___FPE_handler
+02c0:0056      __psp
+02c0:0066      __get_ovl_stack
+02c0:006a      __restore_ovl_stack
+02c0:006e      __close_ovl_file
+02c0:0076      __LpCmdLine
+02c0:007a      __LpPgmName
+02c0:0058      __osmajor
+02c0:0059      __osminor
+02c0:005a      __osmode
+02c0:005b      __HShift
+Module: C:\WATCOM/lib286/dos\clibs.lib(uselfn.c)
+02c0:007e      ___uselfn
+Module: C:\WATCOM/lib286/dos\clibs.lib(dosseg)
+0000:2454      __DOSseg__
+Module: C:\WATCOM/lib286/dos\clibs.lib(initargv.c)
+0000:2455      __Init_Argv_
+0000:2486+     _getargv_
+0000:25eb      __Fini_Argv_
+Module: C:\WATCOM/lib286/dos\clibs.lib(enterdb.c)
+0000:25f6      __EnterWVIDEO_
+02c0:0080+     ___WD_Present
+Module: C:\WATCOM/lib286/dos\clibs.lib(___argc.c)
+02c0:0984      ____Argc
+02c0:0986      ____Argv
+Module: C:\WATCOM/lib286/dos\clibs.lib(amblksiz.c)
+02c0:0082      __amblksiz
+Module: C:\WATCOM/lib286/dos\clibs.lib(exit.c)
+0000:2612+     __null_int23_exit_
+0000:2613      exit_
+0000:2631*     _exit_
+02c0:0084+     ___int23_exit
+02c0:0086+     ___FPE_handler_exit
+Module: C:\WATCOM/lib286/dos\clibs.lib(sgdef086)
+02c0:0090      __Start_XI
+02c0:0096      __End_XI
+02c0:0096      __Start_YI
+02c0:009c      __End_YI
+Module: C:\WATCOM/lib286/dos\clibs.lib(histsplt.c)
+02c0:0988      ___historical_splitparms
+Module: C:\WATCOM/lib286/dos\clibs.lib(nmalloc.c)
+0000:2642*     _nmalloc_
+0000:2642      malloc_
+02c0:0088      ___nheapbeg
+02c0:008a      ___MiniHeapRover
+02c0:008c      ___LargestSizeB4MiniHeapRover
+Module: C:\WATCOM/lib286/dos\clibs.lib(nfree.c)
+0000:26fb      _nfree_
+0000:26fb      free_
+02c0:098a+     ___MiniHeapFreeRover
+Module: C:\WATCOM/lib286/dos\clibs.lib(nmemneed.c)
+0000:27bc      __nmemneed_
+Module: C:\WATCOM/lib286/dos\clibs.lib(mem.c)
+0000:27c0      __MemAllocator
+0000:288a      __MemFree
+Module: C:\WATCOM/lib286/dos\clibs.lib(grownear.c)
+0000:2a53+     __LastFree_
+0000:2aba      __ExpandDGROUP_
+Module: C:\WATCOM/lib286/dos\clibs.lib(heapen.c)
+0000:2b94*     _heapenable_
+02c0:008e      ___heap_enabled
+Module: C:\WATCOM/lib286/dos\clibs.lib(sbrk.c)
+0000:2ba0*     sbrk_
+0000:2ba4      __brk_
+Module: C:\WATCOM/lib286/dos\clibs.lib(errno.c)
+0000:2bf8      __get_errno_ptr_
+0000:2bfc*     __get_doserrno_ptr_
+02c0:098c+     _errno
+02c0:098e+     __doserrno
+
+
+                        +--------------------+
+                        |   Libraries Used   |
+                        +--------------------+
+
+C:\WATCOM/lib286/dos\clibs.lib
+
+
+                        +-----------------------+
+                        |   Linker Statistics   |
+                        +-----------------------+
+
+Stack size:  0400 (1024.)
+Memory size:  3990 (14736.)
+Entry point address: 0000:20b2
+Link time: 00:00.55
