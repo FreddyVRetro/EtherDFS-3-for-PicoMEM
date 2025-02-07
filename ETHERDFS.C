@@ -36,7 +36,7 @@
 
 #define PICOMEM 1
 #define DOSBOX 0
-#define USE_PRINTF 0
+#define USE_PRINTF 1
 
 #if PICOMEM
 
@@ -75,11 +75,12 @@
 static void copybytes(void far *d, void far *s, unsigned int l) {
 
 #if USE_PRINTF
-  if (disp) 
+/*  if (disp) 
              {
               printf("C%04x:%04x ",FP_SEG(s),FP_OFF(s));
               printf(">%04x:%04x, l%d ",FP_SEG(d),FP_OFF(d),l);
              } 
+*/              
 #endif
 
   while (l != 0) {
@@ -438,7 +439,7 @@ void process2f(void) {
              else disp=false;
           copybytes(glob_sdaptr->curr_dta + totreadlen, answer, len);
 #if USE_PRINTF
-          if (disp) printf("Ok");
+//          if (disp) printf("Ok");
 #endif
           totreadlen += len;
   //        if (totreadlen!=26) if (totreadlen == glob_intregs.x.cx) printf("End %d",totreadlen);
@@ -1416,6 +1417,9 @@ int main(int argc, char **argv) {
   unsigned char tmpflag = 0;
   int i;
   unsigned short volatile newdataseg; /* 'volatile' just in case the compiler would try to optimize it out, since I set it through in-line assembly */
+  unsigned short seg_int;
+  unsigned short offs_int;
+
 
   /* set all drive mappings as 'unused' */
   for (i = 0; i < 26; i++) glob_data.ldrv[i] = 0xff;
@@ -1705,11 +1709,6 @@ int main(int argc, char **argv) {
   // check if the PicoMEM BIOS is present.
   // It is mandatory as the data transfer use the RAM emulation
 
-#if USE_PRINTF
-//  PM_Base=123;
-//  printf("TOTO %d, %d",PM_Base, glob_oldstack_seg );
-#endif
-
   if (! pm_irq_detect())
      {
       #include "msg\\pmnotdet.c"
@@ -1769,6 +1768,17 @@ int main(int argc, char **argv) {
     }
   }
  #endif
+
+
+
+ _asm {
+  push cs
+  pop ax
+  mov seg_int, ax
+  mov offs_int, offset inthandler
+  }
+
+  printf("IRQ Address %x:%x",seg_int,offs_int);
 
   /* set all drives as being 'network' drives (also add the PHYSICAL bit,
    * otherwise MS-DOS 6.0 will ignore the drive) */

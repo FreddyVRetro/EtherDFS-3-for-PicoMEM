@@ -1671,8 +1671,8 @@ Routine Size: 50 bytes,    Routine Base: BEGTEXT + 0056
 0128    42                        inc         dx 
 0129    43                        inc         bx 
 012A    EB E4                     jmp         L$186 
-012C                          sendquery_:
-012C    55                        push        bp 
+012C                          sendquery_:                  
+012C    55                        push        bp 				> 129
 012D    89 E5                     mov         bp,sp 
 012F    88 C4                     mov         ah,al 
 0131    88 D0                     mov         al,dl 
@@ -2138,15 +2138,15 @@ Routine Size: 316 bytes,    Routine Base: BEGTEXT + 0088
 05F2    85 C0                     test        ax,ax 
 05F4    74 8D                     je          L$234 
 05F6    E9 20 FF                  jmp         L$226 
-05F9                          L$238:
+05F9                          L$238:                                  > DISK SIZE
 05F9    8D 56 E0                  lea         dx,-0x20[bp] 
 05FC    1E                        push        ds 
 05FD    52                        push        dx 
 05FE    31 DB                     xor         bx,bx 
-0600    A0 00 00                  mov         al,byte ptr _glob_reqdrv 
+0600    A0 00 00                  mov         al,byte ptr _glob_reqdrv
 0603    30 E4                     xor         ah,ah 
-0605    89 C2                     mov         dx,ax 
-0607    B8 0C 00                  mov         ax,0x000c 
+0605    89 C2                     mov         dx,ax 					> 0004  E: (A=0)
+0607    B8 0C 00                  mov         ax,0x000c 				> 000C AL_DISKSPACE
 060A    E8 00 00                  call        sendquery_ 
 060D    3D 06 00                  cmp         ax,0x0006 
 0610    74 03                     je          L$240 

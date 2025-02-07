@@ -31,6 +31,7 @@ unsigned short BIOS_Segment=0;    // PicoMEM BIOS segment (Can be 0 if not detec
 unsigned short PM_PCCR_Param=0;   // Commands parameter RAM address (To send/Receive small data to/from command)
 #endif
 
+/*
 bool pm_wait_cmd_end()
 {
 #if TEST
@@ -56,6 +57,30 @@ bool pm_wait_cmd_end()
   }
 #endif  
 }
+*/
+
+bool pm_wait_cmd_end()
+{
+  bool r;
+  _asm {
+  mov dx,PM_Base
+@@WaitCMDEnd:
+  in ax,dx
+  cmp ax,STAT_CMDINPROGRESS
+  je @@pm_wait_cmd_end
+
+  cmp ax,STAT_READY
+  je @@Ok
+  mov al,0   // Error > Return false
+  jmp @@end
+
+  @@Ok:
+  mov al,1   // STAT_READY > Return true
+  @@end:
+  mov r,al
+  };
+  return r;  
+}
 
 // Send a command via I/O with argument and return a word
 unsigned short pm_io_cmd(unsigned char cmd,unsigned short arg)
@@ -69,7 +94,7 @@ unsigned short pm_io_cmd(unsigned char cmd,unsigned short arg)
     outp(PM_Base,cmd);      // Send the command
     pm_wait_cmd_end();
     return inpw(PM_Base+1);
-   }     
+   }
   return 0;
 #endif  
 }
