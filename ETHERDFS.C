@@ -36,7 +36,7 @@
 
 #define PICOMEM 1
 #define DOSBOX 0
-#define USE_PRINTF 1
+#define USE_PRINTF 0
 
 #if PICOMEM
 
@@ -72,22 +72,27 @@
 
 
 /* copies l bytes from *s to *d */
-static void copybytes(void far *d, void far *s, unsigned int l) {
-
-#if USE_PRINTF
-/*  if (disp) 
-             {
-              printf("C%04x:%04x ",FP_SEG(s),FP_OFF(s));
-              printf(">%04x:%04x, l%d ",FP_SEG(d),FP_OFF(d),l);
-             } 
-*/              
-#endif
+/*static void copybytes(void far *d, void far *s, unsigned int l) {
 
   while (l != 0) {
     l--;
     *(unsigned char far *)d = *(unsigned char far *)s;
     d = (unsigned char far *)d + 1;
     s = (unsigned char far *)s + 1;
+  }
+} */
+
+static void copybytes(void far *d, void far *s, unsigned int l) {
+  _asm {
+    push ds
+    push es
+    mov cx, l
+    lds si, s
+    les di, d
+    cld
+    rep movsb
+    pop es
+    pop ds
   }
 }
 
@@ -1778,7 +1783,7 @@ int main(int argc, char **argv) {
   mov offs_int, offset inthandler
   }
 
-  printf("IRQ Address %x:%x",seg_int,offs_int);
+  //printf("IRQ Address %x:%x",seg_int,offs_int);
 
   /* set all drives as being 'network' drives (also add the PHYSICAL bit,
    * otherwise MS-DOS 6.0 will ignore the drive) */
