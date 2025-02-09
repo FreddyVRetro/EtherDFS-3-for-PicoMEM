@@ -31,7 +31,54 @@ unsigned short BIOS_Segment=0;    // PicoMEM BIOS segment (Can be 0 if not detec
 unsigned short PM_PCCR_Param=0;   // Commands parameter RAM address (To send/Receive small data to/from command)
 #endif
 
-/*
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+unsigned char p_inp(unsigned short port)
+{
+  unsigned char value;
+  _asm {
+    mov dx, port
+    in al, dx
+    mov value, al
+  }
+  return value;
+}
+
+unsigned short p_inpw(unsigned short port)
+{
+  unsigned short value;
+  _asm {
+    mov dx, port
+    in ax, dx
+    mov value, ax
+  }
+  return value;
+}
+
+void p_outp(unsigned short port, unsigned char value)
+{
+  _asm {
+    mov dx, port
+    mov al, value
+    out dx, al
+  }
+}
+
+void p_outpw(unsigned short port, unsigned short value)
+{
+  _asm {
+    mov dx, port
+    mov ax, value
+    out dx, ax
+  }
+}
+
+#ifdef __cplusplus
+}
+#endif
+
 bool pm_wait_cmd_end()
 {
 #if TEST
@@ -39,14 +86,14 @@ bool pm_wait_cmd_end()
 #else
   while(true)
   {
-    uint8_t res=inp(PM_Base);
+    uint8_t res=p_inp(PM_Base);
     switch (res)
         {
      case STAT_READY        : return true;
      case STAT_CMDINPROGRESS: break;   // In progress, Loop
      case STAT_CMDERROR     :  // Status not used for the moment
      case STAT_CMDNOTFOUND  : //printf("CMD Error\n");
-                              outp(PM_Base,0);  // Error : Reset and go check again the status
+                              p_outp(PM_Base,0);  // Error : Reset and go check again the status
                               break;
      case STAT_INIT         :
      case STAT_WAITCOM      : //printf("Err: PicoMEM Init/Wait\n");
@@ -57,8 +104,9 @@ bool pm_wait_cmd_end()
   }
 #endif  
 }
-*/
 
+
+/*
 bool pm_wait_cmd_end()
 {
   bool r;
@@ -80,7 +128,7 @@ bool pm_wait_cmd_end()
   mov r,al
   };
   return r;  
-}
+}*/
 
 // Send a command via I/O with argument and return a word
 unsigned short pm_io_cmd(unsigned char cmd,unsigned short arg)
@@ -90,10 +138,10 @@ unsigned short pm_io_cmd(unsigned char cmd,unsigned short arg)
 #else    
   if (pm_wait_cmd_end())
    {
-    outpw(PM_Base+1,arg);   // Send the parameters
-    outp(PM_Base,cmd);      // Send the command
+    p_outpw(PM_Base+1,arg);   // Send the parameters
+    p_outp(PM_Base,cmd);      // Send the command
     pm_wait_cmd_end();
-    return inpw(PM_Base+1);
+    return p_inpw(PM_Base+1);
    }
   return 0;
 #endif  
