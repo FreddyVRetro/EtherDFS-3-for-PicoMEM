@@ -66,7 +66,7 @@ void genmsg(char *fname, char *msg) {
 int main(void) {
 
   genmsg("msg\\help.c",
-    "PicoMEM DFS Driver for SD/USB access by FreddyV\r\n"
+    "PicoMEM DFS Driver for SD/USB access by FreddyV (DOS 3.2-3.31)\r\n"
     "Based on EtherDFS v" PVER " / Copyright (C) " PDATE " Mateusz Viste\r\n"
     "\r\n"
     "Usage: pmdfs3 rdrv-ldrv [rdrv2-ldrv2 ...] [options]\r\n"
@@ -81,7 +81,25 @@ int main(void) {
     "         > will map the SD to D and USB to E\r\n"
     );
 
+    genmsg("msg\\help6.c",
+      "PicoMEM DFS Driver for SD/USB access by FreddyV (DOS 4+)\r\n"
+      "Based on EtherDFS v" PVER " / Copyright (C) " PDATE " Mateusz Viste\r\n"
+      "\r\n"
+      "Usage: pmdfs3 rdrv-ldrv [rdrv2-ldrv2 ...] [options]\r\n"
+      "       pmdfs3 /u\r\n"
+      "       rdrv is S for SD, U for USB\r\n"
+      "\r\n"
+      "Options:\r\n"
+      "  /q      quiet mode (print nothing if loaded/unloaded successfully)\r\n"
+      "  /u      unload PMDFS from memory\r\n"
+      "\r\n"
+      "Example: pmdfs3 S-D U-E\r\n"
+      "         > will map the SD to D and USB to E\r\n"
+      );
+
   genmsg("msg\\unsupdos.c", "Wrong DOS version! This version of PMDFS requires MS-DOS 3.20 - 3.31.\r\n");
+  
+  genmsg("msg\\unsupdos4.c", "Wrong DOS version! This version of PMDFS requires MS-DOS 4.0+\r\n");
 
   genmsg("msg\\noredir.c", "Redirector installation has been forbidden either by DOS or another process.\r\n");
 

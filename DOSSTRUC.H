@@ -26,7 +26,7 @@
 #define CDSFLAG_JOI 0x2000u  /* JOINed drive */
 #define CDSFLAG_PHY 0x4000u  /* Physical drive */
 #define CDSFLAG_NET 0x8000u  /* Network drive */
-
+#ifdef DOS3
 struct cdsstruct {
   unsigned char current_path[67]; /* current path */
   unsigned short flags; /* indicates whether the drive is physical, networked, substed or joined*/
@@ -46,6 +46,31 @@ struct cdsstruct {
   /* DOS 4 and newer have 7 extra bytes here */
   /* unsigned char f2[7]; */
 }; /* 88 bytes total */
+#else
+/* CDS (current directory structure), as used by DOS 4+ */
+#define CDSFLAG_SUB 0x1000u  /* SUBST drive */
+#define CDSFLAG_JOI 0x2000u  /* JOINed drive */
+#define CDSFLAG_PHY 0x4000u  /* Physical drive */
+#define CDSFLAG_NET 0x8000u  /* Network drive */
+struct cdsstruct {
+  unsigned char current_path[67]; /* current path */
+  unsigned short flags; /* indicates whether the drive is physical, networked, substed or joined*/
+  unsigned char far *dpb; /* a pointer to the Drive Parameter Block */
+  union {
+    struct { /* used for local disks */
+      unsigned short start_cluster;
+      unsigned long unknown;
+    } LOCAL;
+    struct { /* used for network disks */
+      unsigned long redirifs_record_ptr;
+      unsigned short parameter;
+    } NET;
+  } u;
+  unsigned short backslash_offset; /* offset in current_path of '\' (always 2, unless it's a SUBST drive) */
+  /* DOS 4 and newer have 7 extra bytes here */
+  unsigned char f2[7];
+}; /* 88 bytes total */
+#endif
 
 
 /* called 'srchrec' in phantom.c */
@@ -81,10 +106,11 @@ struct foundfilestruct {
  * File access/sharing mode    24Eh    23Bh
  * Ptr to current CDS          282h    26Ch
  * Extended open mode          2E1h    Not supported
- *
- * The struct below is matching MSDOS 3.10-3.30
  */
-struct sdastruct {
+ 
+ #ifdef DOS3
+ // The struct below is matching MSDOS 3.10-3.30
+ struct sdastruct {
   unsigned char f0[12];
   unsigned char far *curr_dta;
   unsigned char f1[30];
@@ -127,6 +153,56 @@ struct sdastruct {
     unsigned long fsize;
   } ren_file;
 };
+#else
+// The struct below is matching FreeDOS and MS-DOS 4+
+struct sdastruct {
+  unsigned char f0[12];
+  unsigned char far *curr_dta;
+  unsigned char f1[32];
+  unsigned char dd;
+  unsigned char mm;
+  unsigned short yy_1980;
+  unsigned char f2[106];
+  unsigned char fn1[128];
+  unsigned char fn2[128];
+  struct sdbstruct sdb;
+  struct foundfilestruct found_file;
+  struct cdsstruct drive_cdscopy; /* 88 bytes total */
+  unsigned char fcb_fn1[11];
+  unsigned char f3;
+  unsigned char fcb_fn2[11];
+  unsigned char f4[11];
+  unsigned char srch_attr;
+  unsigned char open_mode;
+  unsigned char f5[51];
+  unsigned char far *drive_cdsptr;
+  unsigned char f6[12];
+  unsigned short fn1_csofs;
+  unsigned short fn2_csofs;
+  unsigned char f7[71];
+  unsigned short spop_act;
+  unsigned short spop_attr;
+  unsigned short spop_mode;
+  unsigned char f8[29];
+  struct {
+    unsigned char drv_lett;
+    unsigned char srch_tmpl[11];
+    unsigned char srch_attr;
+    unsigned short dir_entry;
+    unsigned short par_clstr;
+    unsigned char f1[4];
+  } ren_srcfile;
+  struct {
+    unsigned char fname[11];
+    unsigned char fattr; /* (1=RO 2=HID 4=SYS 8=VOL 16=DIR 32=ARCH 64=DEVICE) */
+    unsigned char f1[10];
+    unsigned short time_lstupd; /* 16 bits: hhhhhmmm mmmsssss */
+    unsigned short date_lstupd; /* 16 bits: YYYYYYYM MMMDDDDD */
+    unsigned short start_clstr; /* (optional) */
+    unsigned long fsize;
+  } ren_file;
+};
+#endif
 
 
 /* DOS System File Table entry - ALL DOS VERSIONS

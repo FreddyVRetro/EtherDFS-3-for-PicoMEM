@@ -38,6 +38,8 @@
 #define DOSBOX 0
 #define USE_PRINTF 0
 
+//#define DOS3 1
+
 #if PICOMEM
 
 /* Access to simple PicoMEM fonctions, to detect and send command */
@@ -421,7 +423,6 @@ void process2f(void) {
         ((unsigned short far *)buff)[4] = glob_intregs.x.cx;  //"Debug" Send total length to read
         ((unsigned short far *)buff)[5] = totreadlen;         //"Debug" Send remaining bytes to read
         len = sendquery(AL_READFIL, glob_reqdrv, 8, &ax);
-      //  if (len!=26) printf(".");
         if (len == 0xFFFFu) { /* network error */
           FAILFLAG(2);
           break;
@@ -1089,7 +1090,11 @@ static struct cdsstruct far *getcds(unsigned int drive) {
   if (drive > lastdrv) return(NULL);
   /* return the CDS array entry for drive - note that currdir_size depends on
    * DOS version: 0x51 on DOS 3.x, and 0x58 on DOS 4+ */
+  #ifdef DOS3
   return((struct cdsstruct __far *)((unsigned char __far *)dir + (drive * 0x51 /*currdir_size*/)));
+#else
+return((struct cdsstruct __far *)((unsigned char __far *)dir + (drive * 0x58 /*currdir_size*/)));
+#endif  
 }
 /******* end of CDS-related stuff *******/
 
@@ -1434,11 +1439,16 @@ int main(int argc, char **argv) {
   args.argc = argc;
   args.argv = argv;
   if (parseargv(&args) != 0) {
+#ifdef DOS3
     #include "msg/help.c"
+#else    
+    #include "msg/help6.c"
+#endif
     return(1);
   }
 
 #if (DOSBOX==0)
+#ifdef DOS3
   /* check DOS version - I require DOS 3.20 - 3.30 */
   _asm {
     mov ah, 30h       /* get DOS version */
@@ -1458,6 +1468,25 @@ int main(int argc, char **argv) {
     #include "msg\\unsupdos.c"
     return(1);
   }
+#else
+  /* check DOS version - I require DOS 4.0+ */
+  _asm {
+    mov ah, 30h       /* get DOS version */
+    int 21h           /* al = DOSMajor (MS-DOS 3.10 = 3, etc.),  */
+                      /* ah = DOSMinor (MS-DOS 3.10 = 0AH, etc) */
+    cmp al, 4         /* do we have DOSMajor 4? */
+    jb not_4
+    mov tmpflag,1
+    jmp done
+    not_4:
+    mov tmpflag, 0    /* set dosver to 0 */
+    done:
+  }
+  if (tmpflag==0) { /* tmpflag contains DOS major version (3) or 0 for 'other' */
+    #include "msg\\unsupdos4.c"
+    return(1);
+  }
+#endif
 
   /* look whether or not it's ok to install a network redirector at int 2F */
   _asm {
