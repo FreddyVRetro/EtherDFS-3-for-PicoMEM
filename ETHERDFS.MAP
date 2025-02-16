@@ -1,6 +1,6 @@
 Open Watcom Linker Version 1.9
 Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
-Created on:       25/02/10 20:50:27
+Created on:       25/02/16 11:25:05
 Executable Image: pmdfs.exe
 creating a DOS executable
 
@@ -12,7 +12,7 @@ creating a DOS executable
 Group                           Address              Size
 =====                           =======              ====
 
-DGROUP                          026a:0000            00000510
+DGROUP                          026b:0000            00000510
 
 
 
@@ -23,24 +23,24 @@ DGROUP                          026a:0000            00000510
 Segment                Class          Group          Address         Size
 =======                =====          =====          =======         ====
 
-BEGTEXT                CODE           AUTO           0000:0000       00000e47
-_TEXT                  CODE           AUTO           0000:0e50       00001850
-FAR_DATA               FAR_DATA       AUTO           026a:0000       00000000
-_NULL                  BEGDATA        DGROUP         026a:0000       00000020
-_AFTERNULL             BEGDATA        DGROUP         026c:0000       00000002
-_DATA                  DATA           DGROUP         026c:0002       0000006e
-CONST                  DATA           DGROUP         0273:0000       00000000
-CONST2                 DATA           DGROUP         0273:0000       00000000
-XIB                    DATA           DGROUP         0273:0000       00000000
-XI                     DATA           DGROUP         0273:0000       00000006
-XIE                    DATA           DGROUP         0273:0006       00000000
-YIB                    DATA           DGROUP         0273:0006       00000000
-YI                     DATA           DGROUP         0273:0006       00000006
-YIE                    DATA           DGROUP         0273:000c       00000000
-STRINGS                DATA           DGROUP         0273:000c       00000000
-DATA                   DATA           DGROUP         0273:000c       00000000
-_BSS                   BSS            DGROUP         0273:000c       00000074
-STACK                  STACK          DGROUP         027b:0000       00000400
+BEGTEXT                CODE           AUTO           0000:0000       00000e73
+_TEXT                  CODE           AUTO           0000:0e80       00001830
+FAR_DATA               FAR_DATA       AUTO           026b:0000       00000000
+_NULL                  BEGDATA        DGROUP         026b:0000       00000020
+_AFTERNULL             BEGDATA        DGROUP         026d:0000       00000002
+_DATA                  DATA           DGROUP         026d:0002       0000006e
+CONST                  DATA           DGROUP         0274:0000       00000000
+CONST2                 DATA           DGROUP         0274:0000       00000000
+XIB                    DATA           DGROUP         0274:0000       00000000
+XI                     DATA           DGROUP         0274:0000       00000006
+XIE                    DATA           DGROUP         0274:0006       00000000
+YIB                    DATA           DGROUP         0274:0006       00000000
+YI                     DATA           DGROUP         0274:0006       00000006
+YIE                    DATA           DGROUP         0274:000c       00000000
+STRINGS                DATA           DGROUP         0274:000c       00000000
+DATA                   DATA           DGROUP         0274:000c       00000000
+_BSS                   BSS            DGROUP         0274:000c       00000074
+STACK                  STACK          DGROUP         027c:0000       00000400
 
 
                         +----------------+
@@ -56,7 +56,7 @@ Address        Symbol
 Module: CHINT.OBJ(chainint)
 0000:0000      _mvchain_intr_
 Module: ETHERDFS.obj(E:\ETHERDFS.C)
-026a:00a0+     _glob_pm_dfs_buffer
+026b:00a0+     _glob_pm_dfs_buffer
 0000:0020+     p_inp_
 0000:003f+     p_inpw_
 0000:0057+     p_outp_
@@ -66,112 +66,112 @@ Module: ETHERDFS.obj(E:\ETHERDFS.C)
 0000:00de+     pm_dfs_detect_
 0000:0107+     pm_irq_detect_
 0000:0231+     process2f_
-0000:0be9+     inthandler_
-0000:0e50+     begtextend_
-026a:00f3+     _disp
-0000:1190      main_
+0000:0c14+     inthandler_
+0000:0e80+     begtextend_
+026b:00f3+     _disp
+0000:11c0      main_
 Module: C:\WATCOM/lib286/dos\clibs.lib(cstart)
-0000:0e43*     ___begtext
-026a:0000*     __nullarea
-0000:1b44      _cstart_
-0000:1c19*     _Not_Enough_Memory_
-0000:1d44      __exit_
-0000:1d63      __do_exit_with_msg__
-0000:1da6      __GETDS
+0000:0e6f*     ___begtext
+026b:0000*     __nullarea
+0000:1b62      _cstart_
+0000:1c37*     _Not_Enough_Memory_
+0000:1d62      __exit_
+0000:1d81      __do_exit_with_msg__
+0000:1dc4      __GETDS
 Module: C:\WATCOM/lib286/dos\clibs.lib(cmodel)
-0000:1db0      _small_code_
-0000:1db0*     CodeModelMismatch
+0000:1dce      _small_code_
+0000:1dce*     CodeModelMismatch
 Module: C:\WATCOM/lib286/dos\clibs.lib(argcv.c)
-026a:00fa      __argc
-026a:00fc      __argv
-026a:00fe      ___argc
-026a:0100      ___argv
+026b:00fa      __argc
+026b:00fc      __argv
+026b:00fe      ___argc
+026b:0100      ___argv
 Module: C:\WATCOM/lib286/dos\clibs.lib(xmsg.c)
-0000:1db0*     __exit_with_msg_
-0000:1db3      __fatal_runtime_error_
+0000:1dce*     __exit_with_msg_
+0000:1dd1      __fatal_runtime_error_
 Module: C:\WATCOM/lib286/dos\clibs.lib(cmain086.c)
-0000:1dcd      __CMain
+0000:1deb      __CMain
 Module: C:\WATCOM/lib286/dos\clibs.lib(initrtns.c)
-0000:1e1e*     __FInitRtns
-0000:1e22      __InitRtns
-0000:1e7d*     __FFiniRtns
-0000:1e81      __FiniRtns
+0000:1e3c*     __FInitRtns
+0000:1e40      __InitRtns
+0000:1e9b*     __FFiniRtns
+0000:1e9f      __FiniRtns
 Module: C:\WATCOM/lib286/dos\clibs.lib(crwdata)
-026a:0054      __curbrk
-026a:005c      __STACKLOW
-026a:005e      __STACKTOP
-026a:0060      __cbyte
-026a:0062      __child
-026a:0064      __no87
-026a:0072      ___FPE_handler
-026a:0056      __psp
-026a:0066      __get_ovl_stack
-026a:006a      __restore_ovl_stack
-026a:006e      __close_ovl_file
-026a:0076      __LpCmdLine
-026a:007a      __LpPgmName
-026a:0058      __osmajor
-026a:0059      __osminor
-026a:005a      __osmode
-026a:005b      __HShift
+026b:0054      __curbrk
+026b:005c      __STACKLOW
+026b:005e      __STACKTOP
+026b:0060      __cbyte
+026b:0062      __child
+026b:0064      __no87
+026b:0072      ___FPE_handler
+026b:0056      __psp
+026b:0066      __get_ovl_stack
+026b:006a      __restore_ovl_stack
+026b:006e      __close_ovl_file
+026b:0076      __LpCmdLine
+026b:007a      __LpPgmName
+026b:0058      __osmajor
+026b:0059      __osminor
+026b:005a      __osmode
+026b:005b      __HShift
 Module: C:\WATCOM/lib286/dos\clibs.lib(uselfn.c)
-026a:007e      ___uselfn
+026b:007e      ___uselfn
 Module: C:\WATCOM/lib286/dos\clibs.lib(dosseg)
-0000:1ee6      __DOSseg__
+0000:1f04      __DOSseg__
 Module: C:\WATCOM/lib286/dos\clibs.lib(initargv.c)
-0000:1ee7      __Init_Argv_
-0000:1f18+     _getargv_
-0000:207d      __Fini_Argv_
+0000:1f05      __Init_Argv_
+0000:1f36+     _getargv_
+0000:209b      __Fini_Argv_
 Module: C:\WATCOM/lib286/dos\clibs.lib(enterdb.c)
-0000:2088      __EnterWVIDEO_
-026a:0080+     ___WD_Present
+0000:20a6      __EnterWVIDEO_
+026b:0080+     ___WD_Present
 Module: C:\WATCOM/lib286/dos\clibs.lib(___argc.c)
-026a:0104      ____Argc
-026a:0106      ____Argv
+026b:0104      ____Argc
+026b:0106      ____Argv
 Module: C:\WATCOM/lib286/dos\clibs.lib(amblksiz.c)
-026a:0082      __amblksiz
+026b:0082      __amblksiz
 Module: C:\WATCOM/lib286/dos\clibs.lib(exit.c)
-0000:20a4+     __null_int23_exit_
-0000:20a5      exit_
-0000:20c3*     _exit_
-026a:0084+     ___int23_exit
-026a:0086+     ___FPE_handler_exit
+0000:20c2+     __null_int23_exit_
+0000:20c3      exit_
+0000:20e1*     _exit_
+026b:0084+     ___int23_exit
+026b:0086+     ___FPE_handler_exit
 Module: C:\WATCOM/lib286/dos\clibs.lib(sgdef086)
-026a:0090      __Start_XI
-026a:0096      __End_XI
-026a:0096      __Start_YI
-026a:009c      __End_YI
+026b:0090      __Start_XI
+026b:0096      __End_XI
+026b:0096      __Start_YI
+026b:009c      __End_YI
 Module: C:\WATCOM/lib286/dos\clibs.lib(histsplt.c)
-026a:0108      ___historical_splitparms
+026b:0108      ___historical_splitparms
 Module: C:\WATCOM/lib286/dos\clibs.lib(nmalloc.c)
-0000:20d4*     _nmalloc_
-0000:20d4      malloc_
-026a:0088      ___nheapbeg
-026a:008a      ___MiniHeapRover
-026a:008c      ___LargestSizeB4MiniHeapRover
+0000:20f2*     _nmalloc_
+0000:20f2      malloc_
+026b:0088      ___nheapbeg
+026b:008a      ___MiniHeapRover
+026b:008c      ___LargestSizeB4MiniHeapRover
 Module: C:\WATCOM/lib286/dos\clibs.lib(nfree.c)
-0000:218d      _nfree_
-0000:218d      free_
-026a:010a+     ___MiniHeapFreeRover
+0000:21ab      _nfree_
+0000:21ab      free_
+026b:010a+     ___MiniHeapFreeRover
 Module: C:\WATCOM/lib286/dos\clibs.lib(nmemneed.c)
-0000:224e      __nmemneed_
+0000:226c      __nmemneed_
 Module: C:\WATCOM/lib286/dos\clibs.lib(mem.c)
-0000:2260      __MemAllocator
-0000:232a      __MemFree
+0000:2270      __MemAllocator
+0000:233a      __MemFree
 Module: C:\WATCOM/lib286/dos\clibs.lib(grownear.c)
-0000:24f3+     __LastFree_
-0000:255a      __ExpandDGROUP_
+0000:2503+     __LastFree_
+0000:256a      __ExpandDGROUP_
 Module: C:\WATCOM/lib286/dos\clibs.lib(heapen.c)
-0000:2634*     _heapenable_
-026a:008e      ___heap_enabled
+0000:2644*     _heapenable_
+026b:008e      ___heap_enabled
 Module: C:\WATCOM/lib286/dos\clibs.lib(sbrk.c)
-0000:2640*     sbrk_
-0000:2644      __brk_
+0000:2650*     sbrk_
+0000:2654      __brk_
 Module: C:\WATCOM/lib286/dos\clibs.lib(errno.c)
-0000:2698      __get_errno_ptr_
-0000:269c*     __get_doserrno_ptr_
-026a:010c+     _errno
-026a:010e+     __doserrno
+0000:26a8      __get_errno_ptr_
+0000:26ac*     __get_doserrno_ptr_
+026b:010c+     _errno
+026b:010e+     __doserrno
 
 
                         +--------------------+
@@ -186,6 +186,6 @@ C:\WATCOM/lib286/dos\clibs.lib
                         +-----------------------+
 
 Stack size:  0400 (1024.)
-Memory size:  2bb0 (11184.)
-Entry point address: 0000:1b44
-Link time: 00:00.55
+Memory size:  2bc0 (11200.)
+Entry point address: 0000:1b62
+Link time: 00:00.10

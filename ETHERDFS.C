@@ -397,7 +397,7 @@ void process2f(void) {
         /* SDA DTA = read buffer */
       struct sftstruct far *sftptr = MK_FP(glob_intregs.x.es, glob_intregs.x.di);
       unsigned short totreadlen;
-      unsigned char far *dest_ptr;
+//      unsigned char far *dest_ptr;
 
       /* is the file open for write-only? */
       if (sftptr->open_mode & 1) {
@@ -654,8 +654,10 @@ void process2f(void) {
       i -= 2;
       /* prepare and send query (SSCCMMfff...) */
       ((unsigned short far *)buff)[0] = glob_reqstkword; /* WORD from the stack */
-      /* ((unsigned short far *)buff)[1] = glob_sdaptr->spop_act;  */ /* action code (SPOP only) */
-      /* ((unsigned short far *)buff)[2] = glob_sdaptr->spop_mode; */ /* open mode (SPOP only) */
+      #ifndef DOS3
+      ((unsigned short far *)buff)[1] = glob_sdaptr->spop_act;  /* action code (SPOP only) */
+      ((unsigned short far *)buff)[2] = glob_sdaptr->spop_mode; /* open mode (SPOP only) */
+      #endif
       copybytes(buff + 6, glob_sdaptr->fn1 + 2, i);
       i = sendquery(subfunction, glob_reqdrv, i + 6, &ax);
       if ((unsigned short)i == 0xffffu) {
@@ -1427,8 +1429,7 @@ int main(int argc, char **argv) {
   unsigned char tmpflag = 0;
   int i;
   unsigned short volatile newdataseg; /* 'volatile' just in case the compiler would try to optimize it out, since I set it through in-line assembly */
-  unsigned short seg_int;
-  unsigned short offs_int;
+//  unsigned short seg_int,offs_int;
 
 
   /* set all drive mappings as 'unused' */
@@ -1803,8 +1804,7 @@ int main(int argc, char **argv) {
   }
  #endif
 
-
-
+/*
  _asm {
   push cs
   pop ax
@@ -1812,7 +1812,8 @@ int main(int argc, char **argv) {
   mov offs_int, offset inthandler
   }
 
-  //printf("IRQ Address %x:%x",seg_int,offs_int);
+  printf("IRQ Address %x:%x",seg_int,offs_int);
+*/
 
   /* set all drives as being 'network' drives (also add the PHYSICAL bit,
    * otherwise MS-DOS 6.0 will ignore the drive) */
@@ -1833,7 +1834,6 @@ int main(int argc, char **argv) {
     #include "msg\\instlled.c"
   // Display the disk list
     for (i = 0; i < 26; i++) {
-      int z;
       if (glob_data.ldrv[i] == 0xff) continue;
       buff[0] = ' ';
       buff[1] = 'A' + i;
