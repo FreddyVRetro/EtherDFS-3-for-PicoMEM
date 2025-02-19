@@ -260,7 +260,6 @@ regs.h.ah
  * this function returns the length of replyptr, or 0xFFFF on error. */
 static unsigned short sendquery(unsigned char query, unsigned char drive, unsigned short bufflen, unsigned short far *replyax) {
   unsigned short retlength;
-  //unsigned short i;
 
   /* resolve remote drive - no need to validate it, it has been validated
    * already by inthandler() */
@@ -275,8 +274,17 @@ static unsigned short sendquery(unsigned char query, unsigned char drive, unsign
   glob_pm_dfs_buffer[58] = drive;                       /* [58] < drive number     */
   glob_pm_dfs_buffer[59] = query;                       /* [59] < AL value (query) */
 
+  //PM BIOS Function 0Eh :  CALL the DFS fonction
+  _asm {
+  mov ax,0x600E
+  mov dx,0x1234
+  int 0x13
+  };
+
+/*
   pm_io_cmd(CMD_EthDFS_Send,bufflen);   // Send the' Command
   pm_wait_cmd_end();                    // Wait for the answer
+*/
 
 // Add code to receive answer
   *replyax  = ((unsigned short far *)glob_pm_dfs_buffer)[29];   // AX answered at 29x2

@@ -17,7 +17,7 @@
 #define STAT_INIT          0x04  // Init in Progress
 #define STAT_WAITCOM       0x05  // Wait for the USB Serial to be connected
 
-#define DEFAULT_BASE 0x2A0
+#define DEFAULT_BASE       0x2A0
 
 #define CMD_EthDFS_Send    0x89  // Send a packet to EthDFS server emulator and wait answer
 
@@ -161,6 +161,14 @@ unsigned short pm_io_cmd(unsigned char cmd,unsigned short arg)
 ;			  * Bit 3 : Wifi Enabled
 ;         DX : AA55h (Means Ok)
 */
+
+/*
+;PM BIOS Function 4 : Get DFS infos
+; Added in January 2024
+; Return AL : DFS Code version  (Initial is 1)
+;        CX : DFS buffer Offset
+; Info : To detect if implemented, just check if BX is not changed after calling it.
+*/
 unsigned char pm_dfs_detect()
 {
 #if TEST    // Return fake PicoMEM Status
@@ -183,6 +191,23 @@ jmp @@end
 mov al,0              // Return false
 @@end:
 mov r,al
+};
+return r;
+#endif
+}
+
+void pm_bios_cmd(uint16_t cmd)
+{
+#if TEST    // Return fake PicoMEM Status
+ return true;
+#else
+bool r;
+_asm {
+mov ah,0x60
+mov al,cmd
+mov dx,0x1234
+mov bx,0xFFFF
+int 0x13
 };
 return r;
 #endif
