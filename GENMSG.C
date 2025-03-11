@@ -85,15 +85,15 @@ int main(void) {
       "PicoMEM DFS Driver for SD/USB access by FreddyV (DOS 4+)\r\n"
       "Based on EtherDFS v" PVER " / Copyright (C) " PDATE " Mateusz Viste\r\n"
       "\r\n"
-      "Usage: pmdfs3 rdrv-ldrv [rdrv2-ldrv2 ...] [options]\r\n"
-      "       pmdfs3 /u\r\n"
+      "Usage: pmdfs rdrv-ldrv [rdrv2-ldrv2 ...] [options]\r\n"
+      "       pmdfs /u\r\n"
       "       rdrv is S for SD, U for USB\r\n"
       "\r\n"
       "Options:\r\n"
       "  /q      quiet mode (print nothing if loaded/unloaded successfully)\r\n"
       "  /u      unload PMDFS from memory\r\n"
       "\r\n"
-      "Example: pmdfs3 S-D U-E\r\n"
+      "Example: pmdfs S-D U-E\r\n"
       "         > will map the SD to D and USB to E\r\n"
       );
 

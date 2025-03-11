@@ -1,6 +1,6 @@
 Open Watcom Linker Version 1.9
 Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
-Created on:       25/02/16 11:25:05
+Created on:       25/03/11 19:11:45
 Executable Image: pmdfs.exe
 creating a DOS executable
 
@@ -23,7 +23,7 @@ DGROUP                          026b:0000            00000510
 Segment                Class          Group          Address         Size
 =======                =====          =====          =======         ====
 
-BEGTEXT                CODE           AUTO           0000:0000       00000e73
+BEGTEXT                CODE           AUTO           0000:0000       00000e75
 _TEXT                  CODE           AUTO           0000:0e80       00001830
 FAR_DATA               FAR_DATA       AUTO           026b:0000       00000000
 _NULL                  BEGDATA        DGROUP         026b:0000       00000020
@@ -62,40 +62,40 @@ Module: ETHERDFS.obj(E:\ETHERDFS.C)
 0000:0057+     p_outp_
 0000:0074+     p_outpw_
 0000:0088+     pm_wait_cmd_end_
-0000:00b3+     pm_io_cmd_
+0000:00b3*     pm_io_cmd_
 0000:00de+     pm_dfs_detect_
 0000:0107+     pm_irq_detect_
-0000:0231+     process2f_
-0000:0c14+     inthandler_
+0000:0234+     process2f_
+0000:0c17+     inthandler_
 0000:0e80+     begtextend_
 026b:00f3+     _disp
 0000:11c0      main_
 Module: C:\WATCOM/lib286/dos\clibs.lib(cstart)
-0000:0e6f*     ___begtext
+0000:0e71*     ___begtext
 026b:0000*     __nullarea
-0000:1b62      _cstart_
-0000:1c37*     _Not_Enough_Memory_
-0000:1d62      __exit_
-0000:1d81      __do_exit_with_msg__
-0000:1dc4      __GETDS
+0000:1b5e      _cstart_
+0000:1c33*     _Not_Enough_Memory_
+0000:1d5e      __exit_
+0000:1d7d      __do_exit_with_msg__
+0000:1dc0      __GETDS
 Module: C:\WATCOM/lib286/dos\clibs.lib(cmodel)
-0000:1dce      _small_code_
-0000:1dce*     CodeModelMismatch
+0000:1dca      _small_code_
+0000:1dca*     CodeModelMismatch
 Module: C:\WATCOM/lib286/dos\clibs.lib(argcv.c)
 026b:00fa      __argc
 026b:00fc      __argv
 026b:00fe      ___argc
 026b:0100      ___argv
 Module: C:\WATCOM/lib286/dos\clibs.lib(xmsg.c)
-0000:1dce*     __exit_with_msg_
-0000:1dd1      __fatal_runtime_error_
+0000:1dca*     __exit_with_msg_
+0000:1dcd      __fatal_runtime_error_
 Module: C:\WATCOM/lib286/dos\clibs.lib(cmain086.c)
-0000:1deb      __CMain
+0000:1de7      __CMain
 Module: C:\WATCOM/lib286/dos\clibs.lib(initrtns.c)
-0000:1e3c*     __FInitRtns
-0000:1e40      __InitRtns
-0000:1e9b*     __FFiniRtns
-0000:1e9f      __FiniRtns
+0000:1e38*     __FInitRtns
+0000:1e3c      __InitRtns
+0000:1e97*     __FFiniRtns
+0000:1e9b      __FiniRtns
 Module: C:\WATCOM/lib286/dos\clibs.lib(crwdata)
 026b:0054      __curbrk
 026b:005c      __STACKLOW
@@ -117,13 +117,13 @@ Module: C:\WATCOM/lib286/dos\clibs.lib(crwdata)
 Module: C:\WATCOM/lib286/dos\clibs.lib(uselfn.c)
 026b:007e      ___uselfn
 Module: C:\WATCOM/lib286/dos\clibs.lib(dosseg)
-0000:1f04      __DOSseg__
+0000:1f00      __DOSseg__
 Module: C:\WATCOM/lib286/dos\clibs.lib(initargv.c)
-0000:1f05      __Init_Argv_
-0000:1f36+     _getargv_
-0000:209b      __Fini_Argv_
+0000:1f01      __Init_Argv_
+0000:1f32+     _getargv_
+0000:2097      __Fini_Argv_
 Module: C:\WATCOM/lib286/dos\clibs.lib(enterdb.c)
-0000:20a6      __EnterWVIDEO_
+0000:20a2      __EnterWVIDEO_
 026b:0080+     ___WD_Present
 Module: C:\WATCOM/lib286/dos\clibs.lib(___argc.c)
 026b:0104      ____Argc
@@ -131,9 +131,9 @@ Module: C:\WATCOM/lib286/dos\clibs.lib(___argc.c)
 Module: C:\WATCOM/lib286/dos\clibs.lib(amblksiz.c)
 026b:0082      __amblksiz
 Module: C:\WATCOM/lib286/dos\clibs.lib(exit.c)
-0000:20c2+     __null_int23_exit_
-0000:20c3      exit_
-0000:20e1*     _exit_
+0000:20be+     __null_int23_exit_
+0000:20bf      exit_
+0000:20dd*     _exit_
 026b:0084+     ___int23_exit
 026b:0086+     ___FPE_handler_exit
 Module: C:\WATCOM/lib286/dos\clibs.lib(sgdef086)
@@ -144,17 +144,17 @@ Module: C:\WATCOM/lib286/dos\clibs.lib(sgdef086)
 Module: C:\WATCOM/lib286/dos\clibs.lib(histsplt.c)
 026b:0108      ___historical_splitparms
 Module: C:\WATCOM/lib286/dos\clibs.lib(nmalloc.c)
-0000:20f2*     _nmalloc_
-0000:20f2      malloc_
+0000:20ee*     _nmalloc_
+0000:20ee      malloc_
 026b:0088      ___nheapbeg
 026b:008a      ___MiniHeapRover
 026b:008c      ___LargestSizeB4MiniHeapRover
 Module: C:\WATCOM/lib286/dos\clibs.lib(nfree.c)
-0000:21ab      _nfree_
-0000:21ab      free_
+0000:21a7      _nfree_
+0000:21a7      free_
 026b:010a+     ___MiniHeapFreeRover
 Module: C:\WATCOM/lib286/dos\clibs.lib(nmemneed.c)
-0000:226c      __nmemneed_
+0000:2268      __nmemneed_
 Module: C:\WATCOM/lib286/dos\clibs.lib(mem.c)
 0000:2270      __MemAllocator
 0000:233a      __MemFree
@@ -187,5 +187,5 @@ C:\WATCOM/lib286/dos\clibs.lib
 
 Stack size:  0400 (1024.)
 Memory size:  2bc0 (11200.)
-Entry point address: 0000:1b62
-Link time: 00:00.10
+Entry point address: 0000:1b5e
+Link time: 00:00.55

@@ -274,9 +274,9 @@ static unsigned short sendquery(unsigned char query, unsigned char drive, unsign
   glob_pm_dfs_buffer[58] = drive;                       /* [58] < drive number     */
   glob_pm_dfs_buffer[59] = query;                       /* [59] < AL value (query) */
 
-  //PM BIOS Function 0Eh :  CALL the DFS fonction
+  //PM BIOS Function 05h :  CALL the DFS fonction
   _asm {
-  mov ax,0x600E
+  mov ax,0x6005
   mov dx,0x1234
   int 0x13
   };

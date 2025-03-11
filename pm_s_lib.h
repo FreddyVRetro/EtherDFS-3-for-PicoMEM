@@ -196,7 +196,8 @@ return r;
 #endif
 }
 
-void pm_bios_cmd(uint16_t cmd)
+/*
+void pm_bios_cmd(uint8_t cmd)
 {
 #if TEST    // Return fake PicoMEM Status
  return true;
@@ -212,6 +213,7 @@ int 0x13
 return r;
 #endif
 }
+*/
 
 bool pm_irq_detect()
 {
