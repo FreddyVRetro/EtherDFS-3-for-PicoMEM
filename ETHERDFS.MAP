@@ -1,6 +1,6 @@
 Open Watcom Linker Version 1.9
 Portions Copyright (c) 1985-2002 Sybase, Inc. All Rights Reserved.
-Created on:       25/03/11 19:11:45
+Created on:       25/08/01 10:33:35
 Executable Image: pmdfs.exe
 creating a DOS executable
 
@@ -188,4 +188,4 @@ C:\WATCOM/lib286/dos\clibs.lib
 Stack size:  0400 (1024.)
 Memory size:  2bc0 (11200.)
 Entry point address: 0000:1b5e
-Link time: 00:00.55
+Link time: 00:00.65
