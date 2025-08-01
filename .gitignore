@@ -1,0 +1,6 @@
+.vscode
+build
+*.LST
+*.OBJ
+*.MAP
+*.ERR
